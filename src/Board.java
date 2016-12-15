@@ -1331,14 +1331,7 @@ public class Board extends JPanel implements ActionListener {
 							} else {
 								Turn = 'W';
 							}
-							try {
-								System.out.println("sending to server...");
-								out.writeObject(PCoords);
-								System.out.println("Sent to server");
-							} catch (IOException e1) {
-								// TODO Auto-generated catch block
-								e1.printStackTrace();
-							}
+								Send();
 							for (int k = 0; k < 30; k++) {
 								for (int j = 0; j < 2; j++) {
 									Moves[k][j] = -1;
@@ -1361,16 +1354,7 @@ public class Board extends JPanel implements ActionListener {
 								} else {
 									Turn = 'W';
 								}
-								try {
-									System.out.println("Sending to server...");
-									out.writeInt(playerid);
-									System.out.println("Still sending to server...");
-									out.writeObject(PCoords);
-									System.out.println("Sent to server");
-								} catch (IOException e1) {
-									// TODO Auto-generated catch block
-									e1.printStackTrace();
-								}
+								Send();
 								check = 100;
 								for (int k = 0; k < 30; k++) {
 									for (int j = 0; j < 2; j++) {
@@ -1391,6 +1375,33 @@ public class Board extends JPanel implements ActionListener {
 				}
 			}
 
+		}
+	}
+	public void Send() {
+		int[][] PSCoords = { { 12, 13, 14, 15, 16, 14, 13, 12 }, { 11, 11, 11, 11, 11, 11, 11, 11 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 21, 21, 21, 21, 21, 21, 21, 21 },
+				{ 22, 23, 24, 25, 26, 24, 23, 22 }, };
+		try {
+			if (piece == 'W') {
+				for (int i = 0; i < 8; i++) {
+					for (int j = 0; j < 8; j++) {
+						PSCoords[j][i] = PCoords[7 - j][7 - i];
+					}
+				}
+			}else{
+				for (int i = 0; i < 8; i++) {
+					for (int j = 0; j < 8; j++) {
+						PSCoords[j][i] = PCoords[j][i];
+					}
+				}
+			}
+			System.out.println("sending to server...");
+			out.writeObject(PSCoords);
+			System.out.println("Sent to server");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 }
@@ -1421,6 +1432,7 @@ class Input implements Runnable {
 			{00, 00, 00, 00, 00, 00, 00, 00},
 			{00, 00, 00, 00, 00, 00, 00, 00},
 	};
+	char turn = 'W';
 	
 	public Input(ObjectInputStream in, Board board) {
 		this.in = in;
@@ -1429,11 +1441,13 @@ class Input implements Runnable {
 
 	@Override
 	public void run() {
-		while (true) {
+		while(true){
 				try {
 					System.out.println("doing");
+					turn = (char)in.readObject();
 					PCoords = (int[][])in.readObject();
 					System.out.println("did");
+					board.Turn = turn;
 					board.PCoords = PCoords;
 					board.PTCoords = PCoords;
 				} catch (ClassNotFoundException | IOException e) {

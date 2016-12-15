@@ -53,26 +53,17 @@ class Users implements Runnable {
 	int command;
 	int playerid;
 	char piece;
-	
+
 	char turn = 'W';
-	
-	int[][] PCoords = {{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-	},PTCoords = {{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-	};
+
+	int[][] PCoords = { { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+			{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+			{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+			{ 00, 00, 00, 00, 00, 00, 00, 00 }, },
+			PTCoords = { { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, };
 
 	public Users(ObjectOutputStream out2, ObjectInputStream in2, Users[] user, int pid, char piece) {
 		this.out = out2;
@@ -83,19 +74,19 @@ class Users implements Runnable {
 	}
 
 	public void run() {
-		try {
-			out.writeChar(piece);
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
 		while (true) {
 			try {
-				PCoords = (int[][])in.readObject();
-					flip();
-					System.out.println("sending to black...");
-					user[0].out.writeObject(PCoords);	
-					System.out.println("sent to black");
+				PCoords = (int[][]) in.readObject();
+				changeTurn();
+				System.out.println(turn);
+				user[0].out.writeObject(turn);
+				user[0].out.writeObject(PCoords);
+				System.out.println("sent to black");
+				System.out.println("sending to white...");
+				flip();
+				user[1].out.writeObject(turn);
+				user[1].out.writeObject(PTCoords);
+				System.out.println("sent to white");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 			} catch (ClassNotFoundException e) {
@@ -104,7 +95,17 @@ class Users implements Runnable {
 			}
 		}
 	}
-	
+
+	public void changeTurn() {
+		if (turn == 'W') {
+			turn = 'B';
+			System.out.println("Changed to Black");
+			} else {
+			turn = 'W';
+			System.out.println("Changed to White");
+		}
+	}
+
 	public void flip() {
 		for (int i = 0; i < 8; i++) {
 			for (int j = 0; j < 8; j++) {
