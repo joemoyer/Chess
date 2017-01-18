@@ -28,7 +28,7 @@ public class Server {
 					out.writeObject(c);
 					System.out.println("Did");
 					in = new ObjectInputStream(socket.getInputStream());
-					user[i] = new Users(out, in, user, i, c);
+					user[i] = new Users(out, in, user);
 					Thread thread = new Thread(user[i]);
 					thread.start();
 					System.out.println(user);
@@ -50,11 +50,8 @@ class Users implements Runnable {
 	ObjectInputStream in;
 	Users[] user = new Users[10];
 	String name;
-	int command;
-	int playerid;
-	char piece;
 
-	char turn = 'W';
+	static char turn = 'W';
 
 	int[][] PCoords = { { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
 			{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
@@ -65,12 +62,10 @@ class Users implements Runnable {
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, };
 
-	public Users(ObjectOutputStream out2, ObjectInputStream in2, Users[] user, int pid, char piece) {
+	public Users(ObjectOutputStream out2, ObjectInputStream in2, Users[] user) {
 		this.out = out2;
 		this.in = in2;
 		this.user = user;
-		this.playerid = pid;
-		this.piece = piece;
 	}
 
 	public void run() {
@@ -78,17 +73,14 @@ class Users implements Runnable {
 			try {
 				PCoords = (int[][]) in.readObject();
 				changeTurn();
-				System.out.println(turn);
 				user[0].out.writeObject(turn);
 				user[0].out.writeObject(PCoords);
-				System.out.println("sent to black");
-				System.out.println("sending to white...");
 				flip();
 				user[1].out.writeObject(turn);
 				user[1].out.writeObject(PTCoords);
-				System.out.println("sent to white");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
+				break;
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -99,10 +91,8 @@ class Users implements Runnable {
 	public void changeTurn() {
 		if (turn == 'W') {
 			turn = 'B';
-			System.out.println("Changed to Black");
 			} else {
 			turn = 'W';
-			System.out.println("Changed to White");
 		}
 	}
 
