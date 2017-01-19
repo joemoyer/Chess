@@ -34,8 +34,8 @@ public class Board extends JPanel implements ActionListener {
 	public boolean connected = false, selection = false, Wcastle = true, Bcastle = true;
 	
 	static Socket socket;
-	static ObjectInputStream in;
-	static ObjectOutputStream out;
+	static DataInputStream in;
+	static DataOutputStream out;
 
 	public char Turn = 'W', piece = 'B';
 
@@ -85,15 +85,15 @@ public class Board extends JPanel implements ActionListener {
 		System.out.println("Connecting...");
 		socket =  new Socket("localhost", 7777);
 		System.out.println("Connection successful.");
-		in = new ObjectInputStream(socket.getInputStream());
-		piece = (char)in.readObject();
+		in = new DataInputStream(socket.getInputStream());
+		piece = in.readChar();
 
 		if (piece == 'W') {
 			flip();
 			playerid = 1;
 		}
 
-		out = new ObjectOutputStream(socket.getOutputStream());
+		out = new DataOutputStream(socket.getOutputStream());
 
 		Input input = new Input(in, this);
 
@@ -1265,6 +1265,10 @@ public class Board extends JPanel implements ActionListener {
 		public void mouseReleased(MouseEvent e) {
 			double x = e.getX();
 			double y = e.getY();
+			int fromX = 0;
+			int fromY = 0;
+			int toX = 0;
+			int toY = 0;
 
 			if ((x > 310 && x < 822) && (y > 60 && y < 588) && (piece == Turn)) {
 
@@ -1277,6 +1281,10 @@ public class Board extends JPanel implements ActionListener {
 						if (Moves[i][0] == Sx && Moves[i][1] == Sy) {
 							PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
 							PTCoords[Selecty][Selectx] = 0;
+							fromX = Selectx;
+							fromY = Selecty;
+							toX = Sx;
+							toY = Sy;
 							cont = false;
 							selection = false;
 							break;
@@ -1298,6 +1306,10 @@ public class Board extends JPanel implements ActionListener {
 							}
 							PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
 							PTCoords[Selecty][Selectx] = 0;
+							fromX = Selectx;
+							fromY = Selecty;
+							toX = Sx;
+							toY = Sy;
 							cont = false;
 							selection = false;
 							break;
@@ -1331,7 +1343,7 @@ public class Board extends JPanel implements ActionListener {
 							} else {
 								Turn = 'W';
 							}
-								Send();
+								Send(fromX, fromY, toX, toY);
 							for (int k = 0; k < 30; k++) {
 								for (int j = 0; j < 2; j++) {
 									Moves[k][j] = -1;
@@ -1354,7 +1366,7 @@ public class Board extends JPanel implements ActionListener {
 								} else {
 									Turn = 'W';
 								}
-								Send();
+								Send(fromX, fromY, toX, toY);
 								check = 100;
 								for (int k = 0; k < 30; k++) {
 									for (int j = 0; j < 2; j++) {
@@ -1377,31 +1389,26 @@ public class Board extends JPanel implements ActionListener {
 
 		}
 	}
-	public void Send() {
-		int[][] PSCoords = { { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
-				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
-				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
-				{ 00, 00, 00, 00, 00, 00, 00, 00 }, };
+	public void Send(int InitialPositionX, int InitialPositionY, int FinalPositionX, int FinalPositionY) {
+		if (piece == 'W'){
+			InitialPositionX = 7 - InitialPositionX;
+			InitialPositionY = 7 - InitialPositionY;
+			FinalPositionX = 7 - FinalPositionX;
+			FinalPositionY = 7 - FinalPositionY;
+		}
 		try {
-			if (piece == 'W') {
-				for (int i = 0; i < 8; i++) {
-					for (int j = 0; j < 8; j++) {
-						PSCoords[j][i] = PCoords[7 - j][7 - i];
-					}
-				}
-			}else{
-				for (int i = 0; i < 8; i++) {
-					for (int j = 0; j < 8; j++) {
-						PSCoords[j][i] = PCoords[j][i];
-					}
-				}
-			}
-			System.out.println("sending to server...");
-			out.writeObject(PSCoords);
-			System.out.println("Sent to server");
+			out.writeInt(InitialPositionX);
+			out.writeInt(InitialPositionY);
+			out.writeInt(FinalPositionX);
+			out.writeInt(FinalPositionY);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+		if (Turn == 'W'){
+			Turn = 'B';
+		} else {
+			Turn = 'W';
 		}
 	}
 }
@@ -1419,22 +1426,17 @@ public class Board extends JPanel implements ActionListener {
 
 class Input implements Runnable {
 	
-	ObjectInputStream in;
+	DataInputStream in;
 	Board board;
 	Graphics g;
 	
-	int[][] PCoords = {{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-			{00, 00, 00, 00, 00, 00, 00, 00},
-	};
+	int fromx;
+	int fromy;
+	int tox;
+	int toy;
 	char turn = 'W';
 	
-	public Input(ObjectInputStream in, Board board) {
+	public Input(DataInputStream in, Board board) {
 		this.in = in;
 		this.board = board;
 	}
@@ -1444,13 +1446,19 @@ class Input implements Runnable {
 		while(true){
 				try {
 					System.out.println("doing");
-					turn = (char)in.readObject();
-					PCoords = (int[][])in.readObject();
-					System.out.println("did");
+					turn = in.readChar();
+					fromx = in.readInt();
+					fromy = in.readInt();
+					tox = in.readInt();
+					toy = in.readInt();
+					System.out.println("recieved");
 					board.Turn = turn;
-					board.PCoords = PCoords;
-					board.PTCoords = PCoords;
-				} catch (ClassNotFoundException | IOException e) {
+					board.PCoords[toy][tox] = board.PCoords[fromy][fromx];
+					board.PCoords[fromy][fromx] = 0;
+					board.PTCoords[toy][tox] = board.PCoords[toy][tox];
+					board.PTCoords[fromy][fromx] = board.PCoords[fromy][fromx];
+					System.out.println("did");
+				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}

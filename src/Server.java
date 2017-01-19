@@ -6,9 +6,9 @@ public class Server {
 
 	static ServerSocket serverSocket;
 	static Socket socket;
-	static ObjectOutputStream out;
+	static DataOutputStream out;
 	static Users[] user = new Users[2];
-	static ObjectInputStream in;
+	static DataInputStream in;
 
 	public static void main(String[] args) throws Exception {
 		Say("Starting Server...");
@@ -19,15 +19,15 @@ public class Server {
 			for (int i = 0; i < 2; i++) {
 				if (user[i] == null) {
 					System.out.println("Connection from:" + socket.getInetAddress());
-					out = new ObjectOutputStream(socket.getOutputStream());
+					out = new DataOutputStream(socket.getOutputStream());
 					char c = 'W';
 					if (i == 0) {
 						c = 'B';
 					}
 					System.out.println("tried");
-					out.writeObject(c);
+					out.writeChar(c);
 					System.out.println("Did");
-					in = new ObjectInputStream(socket.getInputStream());
+					in = new DataInputStream(socket.getInputStream());
 					user[i] = new Users(out, in, user);
 					Thread thread = new Thread(user[i]);
 					thread.start();
@@ -46,10 +46,15 @@ public class Server {
 
 class Users implements Runnable {
 
-	ObjectOutputStream out;
-	ObjectInputStream in;
+	DataOutputStream out;
+	DataInputStream in;
 	Users[] user = new Users[10];
 	String name;
+	int fromX = 0;
+	int fromY = 0;
+	int toX = 0;
+	int toY = 0;
+
 
 	static char turn = 'W';
 
@@ -62,7 +67,7 @@ class Users implements Runnable {
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, };
 
-	public Users(ObjectOutputStream out2, ObjectInputStream in2, Users[] user) {
+	public Users(DataOutputStream out2, DataInputStream in2, Users[] user) {
 		this.out = out2;
 		this.in = in2;
 		this.user = user;
@@ -71,19 +76,29 @@ class Users implements Runnable {
 	public void run() {
 		while (true) {
 			try {
-				PCoords = (int[][]) in.readObject();
+				fromX = in.readInt();
+				fromY = in.readInt();
+				toX = in.readInt();
+				toY = in.readInt();
+				
 				changeTurn();
-				user[0].out.writeObject(turn);
-				user[0].out.writeObject(PCoords);
+				if(turn == 'B'){
+				user[0].out.writeChar(turn);
+				user[0].out.writeInt(fromX);
+				user[0].out.writeInt(fromY);
+				user[0].out.writeInt(toX);
+				user[0].out.writeInt(toY);
+				} else {
 				flip();
-				user[1].out.writeObject(turn);
-				user[1].out.writeObject(PTCoords);
+				user[1].out.writeChar(turn);
+				user[1].out.writeInt(fromX);
+				user[1].out.writeInt(fromY);
+				user[1].out.writeInt(toX);
+				user[1].out.writeInt(toY);
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				break;
-			} catch (ClassNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
 		}
 	}
@@ -97,10 +112,9 @@ class Users implements Runnable {
 	}
 
 	public void flip() {
-		for (int i = 0; i < 8; i++) {
-			for (int j = 0; j < 8; j++) {
-				PTCoords[j][i] = PCoords[7 - j][7 - i];
-			}
-		}
+		fromX = 7 - fromX;
+		fromY = 7 - fromY;
+		toX = 7 - toX;
+		toY = 7 - toY;
 	}
 }
