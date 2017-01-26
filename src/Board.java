@@ -1396,6 +1396,7 @@ public class Board extends JPanel implements ActionListener {
 			FinalPositionX = 7 - FinalPositionX;
 			FinalPositionY = 7 - FinalPositionY;
 		}
+
 		try {
 			out.writeInt(InitialPositionX);
 			out.writeInt(InitialPositionY);

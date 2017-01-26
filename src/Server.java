@@ -27,7 +27,9 @@ public class Server {
 					System.out.println("tried");
 					out.writeChar(c);
 					System.out.println("Did");
+
 					in = new DataInputStream(socket.getInputStream());
+
 					user[i] = new Users(out, in, user);
 					Thread thread = new Thread(user[i]);
 					thread.start();
@@ -50,11 +52,11 @@ class Users implements Runnable {
 	DataInputStream in;
 	Users[] user = new Users[10];
 	String name;
+
 	int fromX = 0;
 	int fromY = 0;
 	int toX = 0;
 	int toY = 0;
-
 
 	static char turn = 'W';
 
@@ -67,7 +69,9 @@ class Users implements Runnable {
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
 					{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, };
 
+
 	public Users(DataOutputStream out2, DataInputStream in2, Users[] user) {
+
 		this.out = out2;
 		this.in = in2;
 		this.user = user;
@@ -82,6 +86,7 @@ class Users implements Runnable {
 				toY = in.readInt();
 				
 				changeTurn();
+
 				if(turn == 'B'){
 				user[0].out.writeChar(turn);
 				user[0].out.writeInt(fromX);
@@ -99,6 +104,7 @@ class Users implements Runnable {
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				break;
+
 			}
 		}
 	}
