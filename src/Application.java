@@ -16,7 +16,7 @@ public class Application extends JFrame {
         add(new Board());
         
         setSize(1280, 640);
-        setResizable(true);
+        setResizable(false);
         
         setTitle("Chess");
         setLocationRelativeTo(null);
