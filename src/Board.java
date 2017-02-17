@@ -14,6 +14,8 @@ import java.awt.event.MouseListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 import javax.swing.ImageIcon;
@@ -26,14 +28,18 @@ public class Board extends JPanel implements ActionListener {
 	private Timer timer;
 	private final int DELAY = 10;
 	private Image background, Wpawn, Wrook, Wknight, Wbishop, Wqueen, Wking, Bpawn, Brook, Bknight, Bbishop, Bqueen,
-			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, BlackBar, WhiteBar;
-	public boolean connected = false, selection = false, Wcastle = true, Bcastle = true;
+			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, MainMenu, PlayMenu, JoinMenu;
+	public boolean selection = false, CanCastle = true, CastleLeft = false, CastleRight = false, errorMessage = false,
+			isHosting = false, disconnect = false;
 
+	static GameState state = GameState.MainMenu;
+
+	static ServerSocket serverSocket;
 	static Socket socket;
-	static DataInputStream in;
 	static DataOutputStream out;
+	static DataInputStream in;
 
-	public char Turn = 'W', piece = 'B';
+	public char Turn = 'W', color = 'B';
 
 	int[][] PTCoords = { { 12, 13, 14, 15, 16, 14, 13, 12 }, { 11, 11, 11, 11, 11, 11, 11, 11 },
 			{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
@@ -50,19 +56,18 @@ public class Board extends JPanel implements ActionListener {
 			Attacks = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
 					{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
 					{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
-					{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, },
-			CastleK = { { -1, -1 }, { -1, -1 } }, CastleR = { { -1, -1 }, { -1, -1 } };
+					{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, };
 	int[] Ebox = { 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00 },
 			Fbox = { 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00, 00 };
 
-	int q = 0, x, Sx, y, Sy, Selectx, Selecty, check = 0, checkmate = 0, playerid = 0, c = 0, messageWidth = 0, d = 0;
+	int q = 0, x, Sx, y, Sy, Selectx, Selecty, check = 0, checkmate = 0, playerid = 0, c = 0, p = 0, messageWidth = 0,
+			d = 0;
 
 	char[] ChatBar = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-			' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-			' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-			' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };
+			' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+			ipBar = { ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ' };
 
-	String Chatbar = " ";
+	String Chatbar = " ", IpBar = " ", HostIp = "Thing not added :(";
 	String[] ChatBox = { " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", };
 
 	/*
@@ -80,33 +85,55 @@ public class Board extends JPanel implements ActionListener {
 
 		initBoard();
 		LoadImage();
-		connect();
 
 	}
 
-	public void connect() {
+	public void connect(String ip) {
 		try {
 			System.out.println("Connecting...");
-			socket = new Socket("localhost", 7777);
+			socket = new Socket(ip, 7777);
 			System.out.println("Connection successful.");
 			in = new DataInputStream(socket.getInputStream());
-			piece = in.readChar();
-
-			if (piece == 'W') {
-				flip();
-				playerid = 1;
-			}
-
 			out = new DataOutputStream(socket.getOutputStream());
 			Input input = new Input(in, this);
 			Thread thread = new Thread(input);
 			thread.start();
 
-			connected = true;
-
 		} catch (Exception e) {
 			System.out.println("Unable to start client");
 		}
+	}
+
+	public void Host() throws Exception {
+		String ip = Inet4Address.getLocalHost().getHostAddress();
+		System.out.println(ip);
+		color = 'B';
+		HostIp = ip;
+		isHosting = true;
+		
+		repaint();
+
+		System.out.println("Starting Server...");
+		serverSocket = new ServerSocket(7777);
+		System.out.println("Server Started...");
+		while (true) {
+			System.out.println("loop started");
+			socket = serverSocket.accept();
+			System.out.println("Thing Did");
+			System.out.println("Connection from:" + socket.getInetAddress());
+			out = new DataOutputStream(socket.getOutputStream());
+			in = new DataInputStream(socket.getInputStream());
+			Input input = new Input(in, this);
+			Thread thread = new Thread(input);
+			thread.start();
+			break;
+		}		
+	}
+
+	public void Join(String ip) throws Exception {
+		color = 'W';
+		flip();
+		connect(ip);
 	}
 
 	public void LoadImage() {
@@ -128,8 +155,9 @@ public class Board extends JPanel implements ActionListener {
 		Abox = new ImageIcon("Attack.png").getImage();
 		Checkbox = new ImageIcon("Check.png").getImage();
 		CheckmateBox = new ImageIcon("Checkmate.png").getImage();
-		BlackBar = new ImageIcon("BlackBar.png").getImage();
-		WhiteBar = new ImageIcon("WhiteBar.png").getImage();
+		MainMenu = new ImageIcon("MainMenu.png").getImage();
+		PlayMenu = new ImageIcon("PlayMenu.png").getImage();
+		JoinMenu = new ImageIcon("JoinMenu.png").getImage();
 	}
 
 	public Image getImage(int i) {
@@ -177,6 +205,87 @@ public class Board extends JPanel implements ActionListener {
 		}
 		return I;
 	}
+	
+	public void Reset() {
+		selection = false; 
+		CanCastle = true;
+		CastleLeft = false;
+		CastleRight = false;
+		errorMessage = false;
+		isHosting = false;
+		disconnect = false;
+
+		state = GameState.MainMenu;
+
+		serverSocket = null;
+		socket = null;
+		out = null;
+		in = null;
+
+		Turn = 'W';
+		color = 'B';
+
+		int[][] NewPTCoords = { { 12, 13, 14, 15, 16, 14, 13, 12 }, { 11, 11, 11, 11, 11, 11, 11, 11 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 21, 21, 21, 21, 21, 21, 21, 21 },
+				{ 22, 23, 24, 25, 26, 24, 23, 22 }, },	
+		NewPCoords = { { 12, 13, 14, 15, 16, 14, 13, 12 }, { 11, 11, 11, 11, 11, 11, 11, 11 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+				{ 00, 00, 00, 00, 00, 00, 00, 00 }, { 00, 00, 00, 00, 00, 00, 00, 00 },
+				{ 21, 21, 21, 21, 21, 21, 21, 21 }, { 22, 23, 24, 25, 26, 24, 23, 22 }, },
+		NewMoves = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, },
+		NewAttacks = { { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 },
+				{ -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 }, };
+		for (int i = 0; i < NewPTCoords.length; i++) {
+			for (int j = 0; j < NewPTCoords[i].length; j++) {
+				PTCoords[i][j] = NewPTCoords[i][j];
+				PCoords[i][j] = NewPCoords[i][j];
+			}
+		}
+		for (int i = 0; i < NewMoves.length; i++) {
+			for (int j = 0; j < NewMoves[i].length; j++) {
+				Moves[i][j] = NewMoves[i][j];
+				Attacks[i][j] = NewAttacks[i][j];
+			}
+		}
+		for (int i = 0; i < Ebox.length; i++) {
+			Ebox[i] = 0;
+			Fbox[i] = 0;
+		}
+
+		q = 0;
+		x = -1;
+		Sx = -1;
+		y = -1;
+		Sy = -1;
+		Selectx = -1;
+		Selecty = -1;
+		check = 0;
+		checkmate = 0;
+		playerid = 0;
+		c = 0;
+		p = 0;
+		messageWidth = 0;
+		d = 0;
+
+		for (int i = 0; i < ChatBar.length; i++) {
+			ChatBar[i] = ' ';
+			ipBar[i] = ' ';
+		}
+
+		Chatbar = " ";
+		IpBar = " ";
+		HostIp = "Thing not added :(";
+		
+		for(int i = 0; i < ChatBox.length; i++) {
+			ChatBox[i] = " ";
+		}
+	}
 
 	private void initBoard() {
 
@@ -202,110 +311,129 @@ public class Board extends JPanel implements ActionListener {
 
 		Graphics2D g2d = (Graphics2D) g;
 
-		if (connected == false) {
-			q++;
+		switch (state) {
 
-			drawString(g2d, "Connecting", "Arial", Color.CYAN, 65, 100, 300);
-			g2d.drawRect(100, 300, 300, 500);
+		case MainMenu:
+			g2d.drawImage(MainMenu, 0, 0, this);
+			
+			if (disconnect == true) {
+				drawString(g2d, "Opponent Has Disconnected, Game Terminated", "Times New Roman", Color.RED, 18, 50, 350);
+			}
+			break;
 
-		}
+		case PlayMenu:
+			g2d.drawImage(PlayMenu, 0, 0, this);
+			break;
 
-		g2d.drawImage(background, 0, 0, this);
+		case JoinMenu:
+			g2d.drawImage(JoinMenu, 0, 0, this);
+			drawString(g2d, IpBar, "Calibri", Color.BLACK, 18, 900, 240);
+			if (errorMessage) {
+				drawString(g2d, "Could not connect, try again", "Calibri", Color.RED, 12, 850, 200);
+			}
+			break;
 
-		// Pieces
-		for (int j = 0; j < 8; j++) {
-			for (int i = 0; i < 8; i++) {
-				int t = PCoords[i][j];
-				switch (t) {
-				case 11:
-					g2d.drawImage(Wpawn, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 12:
-					g2d.drawImage(Wrook, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 13:
-					g2d.drawImage(Wknight, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 14:
-					g2d.drawImage(Wbishop, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 15:
-					g2d.drawImage(Wqueen, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 16:
-					g2d.drawImage(Wking, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 21:
-					g2d.drawImage(Bpawn, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 22:
-					g2d.drawImage(Brook, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 23:
-					g2d.drawImage(Bknight, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 24:
-					g2d.drawImage(Bbishop, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 25:
-					g2d.drawImage(Bqueen, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
-				case 26:
-					g2d.drawImage(Bking, (311 + (64 * j)), (60 + (66 * i)), this);
-					break;
+		case Instructions:
+			break;
+
+		case Game:
+
+			g2d.drawImage(background, 0, 0, this);
+
+			// Pieces
+			for (int j = 0; j < 8; j++) {
+				for (int i = 0; i < 8; i++) {
+					int t = PCoords[i][j];
+					switch (t) {
+					case 11:
+						g2d.drawImage(Wpawn, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 12:
+						g2d.drawImage(Wrook, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 13:
+						g2d.drawImage(Wknight, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 14:
+						g2d.drawImage(Wbishop, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 15:
+						g2d.drawImage(Wqueen, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 16:
+						g2d.drawImage(Wking, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 21:
+						g2d.drawImage(Bpawn, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 22:
+						g2d.drawImage(Brook, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 23:
+						g2d.drawImage(Bknight, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 24:
+						g2d.drawImage(Bbishop, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 25:
+						g2d.drawImage(Bqueen, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					case 26:
+						g2d.drawImage(Bking, (311 + (64 * j)), (60 + (66 * i)), this);
+						break;
+					}
+
 				}
-
 			}
-		}
-		if (selection) {
-			g2d.drawImage(Sbox, (310 + (64 * Selectx)), (60 + (66 * Selecty)), this);
-		}
-		for (int i = 0; i < 29; i++) {
-			if (Moves[i][0] != -1) {
-				g2d.drawImage(Mbox, (310 + (64 * Moves[i][0])), (60 + (66 * Moves[i][1])), this);
+			if (selection) {
+				g2d.drawImage(Sbox, (310 + (64 * Selectx)), (60 + (66 * Selecty)), this);
 			}
-			if (Attacks[i][0] != -1) {
-				g2d.drawImage(Abox, (310 + (64 * Attacks[i][0])), (60 + (66 * Attacks[i][1])), this);
-			}
-			if (i < 2) {
-				if (CastleK[i][0] != -1) {
-					g2d.drawImage(Mbox, (310 + (64 * CastleK[i][0])), (60 + (66 * CastleK[i][1])), this);
+			for (int i = 0; i < 29; i++) {
+				if (Moves[i][0] != -1) {
+					g2d.drawImage(Mbox, (310 + (64 * Moves[i][0])), (60 + (66 * Moves[i][1])), this);
+				}
+				if (Attacks[i][0] != -1) {
+					g2d.drawImage(Abox, (310 + (64 * Attacks[i][0])), (60 + (66 * Attacks[i][1])), this);
 				}
 			}
-		}
 
-		for (int i = 0; i < 5; i++) {
-			g2d.drawImage(getImage(Ebox[i]), (18 + (54 * i)), (72), this);
-			g2d.drawImage(getImage(Fbox[i]), (18 + (54 * i)), (340), this);
+			for (int i = 0; i < 5; i++) {
+				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * i)), (72), this);
+				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * i)), (340), this);
+			}
+			for (int i = 5; i < 10; i++) {
+				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 5))), (138), this);
+				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 5))), (406), this);
+			}
+			for (int i = 10; i < 15; i++) {
+				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 10))), (204), this);
+				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 10))), (472), this);
+			}
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^
+			if (Turn == 'W') {
+				drawString(g2d, "White", "Times New Roman", Color.WHITE, 50, 970, 140);
+			} else if (Turn == 'B') {
+				drawString(g2d, "Black", "Times New Roman", Color.BLACK, 50, 970, 140);
+			} else if (Turn == 'L') {
+				drawString(g2d, "Checkmate", "Times New Roman", Color.RED, 35, 970, 140);
+			}
+			if (check > 0) {
+				g2d.drawImage(Checkbox, 430, 275, this);
+				check -= 1;
+			}
+			if (checkmate > 0) {
+				g2d.drawImage(CheckmateBox, 375, 275, this);
+				checkmate -= 1;
+			}
+			for (int i = 0; i < ChatBox.length; i++) {
+				drawString(g2d, ChatBox[i], "Times New Roman", Color.WHITE, 18, 900, 525 - (35 * i));
+			}
+			if (isHosting == true) {
+			drawString(g2d, "Your Ip: " + HostIp, "Times New Roman", Color.WHITE, 18, 25, 25);
+			}
+			drawString(g2d, Chatbar, "Times New Roman", Color.WHITE, 18, 900, 575);
+			break;
 		}
-		for (int i = 5; i < 10; i++) {
-			g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 5))), (138), this);
-			g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 5))), (406), this);
-		}
-		for (int i = 10; i < 15; i++) {
-			g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 10))), (204), this);
-			g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 10))), (472), this);
-		}
-		// ^^^^^^^^^^^^^^^^^^^^^^^^^^
-		if (Turn == 'W') {
-			drawString(g2d, "White", "Times New Roman", Color.WHITE, 50, 970, 140);
-		} else if (Turn == 'B') {
-			drawString(g2d, "Black", "Times New Roman", Color.BLACK, 50, 970, 140);
-		} else if (Turn == 'L') {
-			drawString(g2d, "Checkmate", "Times New Roman", Color.RED, 35, 970, 140);
-		}
-		if (check > 0) {
-			g2d.drawImage(Checkbox, 430, 275, this);
-			check -= 1;
-		}
-		if (checkmate > 0) {
-			g2d.drawImage(CheckmateBox, 375, 275, this);
-			checkmate -= 1;
-		}
-		for (int i = 0; i < ChatBox.length; i++) {
-			drawString(g2d, ChatBox[i], "Times New Roman", Color.WHITE, 18, 900, 525 - (35 * i));
-		}
-		drawString(g2d, Chatbar, "Times New Roman", Color.WHITE, 18, 900, 575);
 	}
 
 	@Override
@@ -335,282 +463,309 @@ public class Board extends JPanel implements ActionListener {
 			/*
 			 * THIS SHIT AIN'T GETTIN' EASY LIKE DAYUM
 			 */
-			if (key == KeyEvent.VK_1) {
-				if (Shift) {
-					addKey('!');
-				} else {
-					addKey('1');
+			if (state == GameState.Game || state == GameState.JoinMenu) {
+				if (key == KeyEvent.VK_1) {
+					if (Shift) {
+						addKey('!');
+					} else {
+						addKey('1');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_2) {
-				if (Shift) {
-					addKey('@');
-				} else {
-					addKey('2');
+				if (key == KeyEvent.VK_2) {
+					if (Shift) {
+						addKey('@');
+					} else {
+						addKey('2');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_3) {
-				if (Shift) {
-					addKey('#');
-				} else {
-					addKey('3');
+				if (key == KeyEvent.VK_3) {
+					if (Shift) {
+						addKey('#');
+					} else {
+						addKey('3');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_4) {
-				if (Shift) {
-					addKey('$');
-				} else {
-					addKey('4');
+				if (key == KeyEvent.VK_4) {
+					if (Shift) {
+						addKey('$');
+					} else {
+						addKey('4');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_5) {
-				if (Shift) {
-					addKey('%');
-				} else {
-					addKey('5');
+				if (key == KeyEvent.VK_5) {
+					if (Shift) {
+						addKey('%');
+					} else {
+						addKey('5');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_6) {
-				if (Shift) {
-					addKey('^');
-				} else {
-					addKey('6');
+				if (key == KeyEvent.VK_6) {
+					if (Shift) {
+						addKey('^');
+					} else {
+						addKey('6');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_7) {
-				if (Shift) {
-					addKey('&');
-				} else {
-					addKey('7');
+				if (key == KeyEvent.VK_7) {
+					if (Shift) {
+						addKey('&');
+					} else {
+						addKey('7');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_8) {
-				if (Shift) {
-					addKey('*');
-				} else {
-					addKey('8');
+				if (key == KeyEvent.VK_8) {
+					if (Shift) {
+						addKey('*');
+					} else {
+						addKey('8');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_9) {
-				if (Shift) {
-					addKey('(');
-				} else {
-					addKey('9');
+				if (key == KeyEvent.VK_9) {
+					if (Shift) {
+						addKey('(');
+					} else {
+						addKey('9');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_0) {
-				if (Shift) {
-					addKey(')');
-				} else {
-					addKey('0');
+				if (key == KeyEvent.VK_0) {
+					if (Shift) {
+						addKey(')');
+					} else {
+						addKey('0');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_Q) {
-				if (Shift) {
-					addKey('Q');
-				} else {
-					addKey('q');
+				if (key == KeyEvent.VK_Q) {
+					if (Shift) {
+						addKey('Q');
+					} else {
+						addKey('q');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_W) {
-				if (Shift) {
-					addKey('W');
-				} else {
-					addKey('w');
+				if (key == KeyEvent.VK_W) {
+					if (Shift) {
+						addKey('W');
+					} else {
+						addKey('w');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_E) {
-				if (Shift) {
-					addKey('E');
-				} else {
-					addKey('e');
+				if (key == KeyEvent.VK_E) {
+					if (Shift) {
+						addKey('E');
+					} else {
+						addKey('e');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_R) {
-				if (Shift) {
-					addKey('R');
-				} else {
-					addKey('r');
+				if (key == KeyEvent.VK_R) {
+					if (Shift) {
+						addKey('R');
+					} else {
+						addKey('r');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_T) {
-				if (Shift) {
-					addKey('T');
-				} else {
-					addKey('t');
+				if (key == KeyEvent.VK_T) {
+					if (Shift) {
+						addKey('T');
+					} else {
+						addKey('t');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_Y) {
-				if (Shift) {
-					addKey('Y');
-				} else {
-					addKey('y');
+				if (key == KeyEvent.VK_Y) {
+					if (Shift) {
+						addKey('Y');
+					} else {
+						addKey('y');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_U) {
-				if (Shift) {
-					addKey('U');
-				} else {
-					addKey('u');
+				if (key == KeyEvent.VK_U) {
+					if (Shift) {
+						addKey('U');
+					} else {
+						addKey('u');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_I) {
-				if (Shift) {
-					addKey('I');
-				} else {
-					addKey('i');
+				if (key == KeyEvent.VK_I) {
+					if (Shift) {
+						addKey('I');
+					} else {
+						addKey('i');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_O) {
-				if (Shift) {
-					addKey('O');
-				} else {
-					addKey('o');
+				if (key == KeyEvent.VK_O) {
+					if (Shift) {
+						addKey('O');
+					} else {
+						addKey('o');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_P) {
-				if (Shift) {
-					addKey('P');
-				} else {
-					addKey('p');
+				if (key == KeyEvent.VK_P) {
+					if (Shift) {
+						addKey('P');
+					} else {
+						addKey('p');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_A) {
-				if (Shift) {
-					addKey('A');
-				} else {
-					addKey('a');
+				if (key == KeyEvent.VK_A) {
+					if (Shift) {
+						addKey('A');
+					} else {
+						addKey('a');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_S) {
-				if (Shift) {
-					addKey('S');
-				} else {
-					addKey('s');
+				if (key == KeyEvent.VK_S) {
+					if (Shift) {
+						addKey('S');
+					} else {
+						addKey('s');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_D) {
-				if (Shift) {
-					addKey('D');
-				} else {
-					addKey('d');
+				if (key == KeyEvent.VK_D) {
+					if (Shift) {
+						addKey('D');
+					} else {
+						addKey('d');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_F) {
-				if (Shift) {
-					addKey('F');
-				} else {
-					addKey('f');
+				if (key == KeyEvent.VK_F) {
+					if (Shift) {
+						addKey('F');
+					} else {
+						addKey('f');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_G) {
-				if (Shift) {
-					addKey('G');
-				} else {
-					addKey('g');
+				if (key == KeyEvent.VK_G) {
+					if (Shift) {
+						addKey('G');
+					} else {
+						addKey('g');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_H) {
-				if (Shift) {
-					addKey('H');
-				} else {
-					addKey('h');
+				if (key == KeyEvent.VK_H) {
+					if (Shift) {
+						addKey('H');
+					} else {
+						addKey('h');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_J) {
-				if (Shift) {
-					addKey('J');
-				} else {
-					addKey('j');
+				if (key == KeyEvent.VK_J) {
+					if (Shift) {
+						addKey('J');
+					} else {
+						addKey('j');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_K) {
-				if (Shift) {
-					addKey('K');
-				} else {
-					addKey('k');
+				if (key == KeyEvent.VK_K) {
+					if (Shift) {
+						addKey('K');
+					} else {
+						addKey('k');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_L) {
-				if (Shift) {
-					addKey('L');
-				} else {
-					addKey('l');
+				if (key == KeyEvent.VK_L) {
+					if (Shift) {
+						addKey('L');
+					} else {
+						addKey('l');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_Z) {
-				if (Shift) {
-					addKey('Z');
-				} else {
-					addKey('z');
+				if (key == KeyEvent.VK_Z) {
+					if (Shift) {
+						addKey('Z');
+					} else {
+						addKey('z');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_X) {
-				if (Shift) {
-					addKey('X');
-				} else {
-					addKey('x');
+				if (key == KeyEvent.VK_X) {
+					if (Shift) {
+						addKey('X');
+					} else {
+						addKey('x');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_C) {
-				if (Shift) {
-					addKey('C');
-				} else {
-					addKey('c');
+				if (key == KeyEvent.VK_C) {
+					if (Shift) {
+						addKey('C');
+					} else {
+						addKey('c');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_V) {
-				if (Shift) {
-					addKey('V');
-				} else {
-					addKey('v');
+				if (key == KeyEvent.VK_V) {
+					if (Shift) {
+						addKey('V');
+					} else {
+						addKey('v');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_B) {
-				if (Shift) {
-					addKey('B');
-				} else {
-					addKey('b');
+				if (key == KeyEvent.VK_B) {
+					if (Shift) {
+						addKey('B');
+					} else {
+						addKey('b');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_N) {
-				if (Shift) {
-					addKey('N');
-				} else {
-					addKey('n');
+				if (key == KeyEvent.VK_N) {
+					if (Shift) {
+						addKey('N');
+					} else {
+						addKey('n');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_M) {
-				if (Shift) {
-					addKey('M');
-				} else {
-					addKey('m');
+				if (key == KeyEvent.VK_M) {
+					if (Shift) {
+						addKey('M');
+					} else {
+						addKey('m');
+					}
 				}
-			}
-			if (key == KeyEvent.VK_SPACE) {
-				addKey(' ');
-			}
-			if (key == KeyEvent.VK_BACK_SPACE) {
-				if (c > 0) {
-					ChatBar[c - 1] = ' ';
-					c--;
+				if (key == KeyEvent.VK_PERIOD) {
+					if (Shift) {
+						addKey('>');
+					} else {
+						addKey('.');
+					}
 				}
-			}
-			Chatbar = new String(ChatBar);
-			if (key == KeyEvent.VK_ENTER) {
-				SendMessage(Chatbar);
-				for (int i = 0; i < ChatBar.length; i++) {
-					ChatBar[i] = ' ';
+				if (key == KeyEvent.VK_SPACE) {
+					addKey(' ');
 				}
-				c = 0;
-				Chatbar = " ";
+				if (key == KeyEvent.VK_BACK_SPACE) {
+					if (state == GameState.Game) {
+						if (c > 0) {
+							ChatBar[c - 1] = ' ';
+							c--;
+						}
+					} else if (state == GameState.JoinMenu) {
+						if (p > 0) {
+							ipBar[p - 1] = ' ';
+							p--;
+						}
+					}
+					
+				}
+				Chatbar = new String(ChatBar);
+				if (key == KeyEvent.VK_ENTER) {
+					if (state == GameState.Game) {
+						SendMessage(Chatbar);
+					}
+					for (int i = 0; i < ChatBar.length; i++) {
+						ChatBar[i] = ' ';
+					}
+					c = 0;
+					Chatbar = " ";
+				}
 			}
 		}
 
 		public void addKey(char input) {
-			if (c < 80) {
-				ChatBar[c] = input;
-				c++;
+			if (state == GameState.Game) {
+				if (c < ChatBar.length) {
+					ChatBar[c] = input;
+					c++;
+				}
+			} else if (state == GameState.JoinMenu) {
+				if (p < ipBar.length) {
+					ipBar[p] = input;
+					p++;
+				}
+				IpBar = new String(ipBar);
 			}
 		}
 
@@ -618,7 +773,15 @@ public class Board extends JPanel implements ActionListener {
 			try {
 				out.writeInt(2);
 				out.writeUTF(message);
-				out.writeChar(piece);
+				out.writeChar(color);
+				for (int i = ChatBox.length - 1; i > 0; i--) {
+					ChatBox[i] = ChatBox[i - 1];
+				}
+				if (color == 'W') {
+					ChatBox[0] = "White: " + message;
+				} else {
+					ChatBox[0] = "Black: " + message;
+				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -1217,42 +1380,13 @@ public class Board extends JPanel implements ActionListener {
 			break;
 		case 16:
 		case 26:
-
-			if (Bcastle == true && piece == 26) {
-				int c = 0;
-				if (PCoords[7][0] == 22 && PCoords[7][1] == 00 && PCoords[7][2] == 00 && PCoords[7][3] == 26) {
-					CastleK[c][0] = 1;
-					CastleK[c][1] = 7;
-					CastleR[c][0] = 2;
-					CastleR[c][1] = 7;
-					c++;
+			
+			if (CanCastle == true && Turn == piece) {
+				if ((PTCoords[7][0] == 12 || PTCoords[7][0] == 22) && PTCoords[7][1] == 0 && PTCoords [7][2] == 0) {
+					CastleLeft = true; 
 				}
-				if (PCoords[7][7] == 22 && PCoords[7][6] == 00 && PCoords[7][5] == 00 && PCoords[7][4] == 00
-						&& PCoords[7][3] == 26) {
-					CastleK[c][0] = 5;
-					CastleK[c][1] = 7;
-					CastleR[c][0] = 4;
-					CastleR[c][1] = 7;
-					c++;
-				}
-			}
-
-			if (Wcastle == true && piece == 16) {
-				int c = 0;
-				if (PCoords[0][7] == 12 && PCoords[0][6] == 00 && PCoords[0][5] == 00 && PCoords[0][4] == 16) {
-					CastleK[c][0] = 6;
-					CastleK[c][1] = 0;
-					CastleR[c][0] = 5;
-					CastleR[c][1] = 0;
-					c++;
-				}
-				if (PCoords[0][0] == 12 && PCoords[0][1] == 00 && PCoords[0][2] == 00 && PCoords[0][3] == 00
-						&& PCoords[0][4] == 16) {
-					CastleK[c][0] = 2;
-					CastleK[c][1] = 0;
-					CastleR[c][0] = 3;
-					CastleR[c][1] = 0;
-					c++;
+				if (PTCoords[7][7] == 12 || PTCoords[7][7] == 22) {
+					CastleRight = true;
 				}
 			}
 
@@ -1391,12 +1525,6 @@ public class Board extends JPanel implements ActionListener {
 					Attacks[a][1] = y + 1;
 					a++;
 				}
-
-				if (piece == 16)
-					Wcastle = false;
-				if (piece == 26)
-					Bcastle = false;
-
 			}
 			break;
 		}
@@ -1536,100 +1664,131 @@ public class Board extends JPanel implements ActionListener {
 		public void mouseReleased(MouseEvent e) {
 			double x = e.getX();
 			double y = e.getY();
-			int fromX = 0;
-			int fromY = 0;
-			int toX = 0;
-			int toY = 0;
-			int ifCheck = 0;
-			int takenPiece = 0;
 
-			if ((x > 310 && x < 822) && (y > 60 && y < 588) && (piece == Turn)) {
+			switch (state) {
 
-				Sx = (int) ((x - 311) / 64);
-				Sy = (int) ((y - 60) / 66);
+			case MainMenu:
+				if (button(775, 100, 415, 130, (int) x, (int) y)) {
+					state = GameState.PlayMenu;
+				}
+				if (button(770, 290, 420, 80, (int) x, (int) y)) {
+					state = GameState.Instructions;
+				}
+				break;
 
-				if ((Sx <= 7 && Sx >= 0) && (Sy <= 7 && Sy >= 0)) {
-					boolean cont = true;
-					for (int i = 0; i < 30; i++) {
-						if (Moves[i][0] == Sx && Moves[i][1] == Sy) {
-							PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
-							PTCoords[Selecty][Selectx] = 0;
-							fromX = Selectx;
-							fromY = Selecty;
-							toX = Sx;
-							toY = Sy;
-							takenPiece = 0;
-							cont = false;
-							selection = false;
-							break;
-						} else if (Attacks[i][0] == Sx && Attacks[i][1] == Sy) {
-							takenPiece = PTCoords[Attacks[i][1]][Attacks[i][0]];
-							PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
-							PTCoords[Selecty][Selectx] = 0;
-							fromX = Selectx;
-							fromY = Selecty;
-							toX = Sx;
-							toY = Sy;
-							cont = false;
-							selection = false;
-							break;
-						}
-
+			case PlayMenu:
+				if (button(775, 100, 415, 130, (int) x, (int) y)) {
+					state = GameState.Game;
+					try {
+						Host();
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
 					}
-					if (cont) {
-						if ((PTCoords[Sy][Sx] != 00) && ((PTCoords[Sy][Sx] > 20 && Turn == 'B')
-								|| (PTCoords[Sy][Sx] > 10 && PTCoords[Sy][Sx] < 20 && Turn == 'W'))) {
-							try {
-								genMoves(Sx, Sy, PTCoords[Sy][Sx]);
-							} catch (Exception e1) {
-								// TODO Auto-generated catch block
-								e1.printStackTrace();
-							}
-							selection = true;
-							Selectx = Sx;
-							Selecty = Sy;
+				}
+				if (button(770, 250, 415, 125, (int) x, (int) y)) {
+					state = GameState.JoinMenu;
+				}
+				if (button(770, 400, 415, 70, (int) x, (int) y)) {
+					state = GameState.MainMenu;
+				}
+				break;
+
+			case JoinMenu:
+				if (button(770, 290, 420, 70, (int) x, (int) y)) {
+					state = GameState.Game;
+					try {
+						String IpBar = new String(ipBar);
+						Join(IpBar);
+						state = GameState.Game;
+						for (int i = 0; i < ChatBar.length; i++) {
+							ipBar[i] = ' ';
 						}
-					} else {
-						int n = Checkcheck(Turn);
-						System.out.println(n);
-						if (n == 2) {
-							for (int i = 0; i < 8; i++) {
-								for (int j = 0; j < 8; j++) {
-									PCoords[j][i] = PTCoords[j][i];
-								}
+						p = 0;
+						IpBar = " ";
+					} catch (Exception e1) {
+						errorMessage = true;
+					}
+				}
+				if (button(770, 400, 415, 70, (int) x, (int) y)) {
+					state = GameState.PlayMenu;
+				}
+				break;
+
+			case Instructions:
+				break;
+
+			case Game:
+				int fromX = 0;
+				int fromY = 0;
+				int toX = 0;
+				int toY = 0;
+				int ifCheck = 0;
+				int takenPiece = 0;
+
+				if ((x > 310 && x < 822) && (y > 60 && y < 588) && (color == Turn)) {
+
+					Sx = (int) ((x - 311) / 64);
+					Sy = (int) ((y - 60) / 66);
+
+					//Scans to check if you have selected a valid move
+					if ((Sx <= 7 && Sx >= 0) && (Sy <= 7 && Sy >= 0)) {
+						boolean cont = true;
+						for (int i = 0; i < 30; i++) {
+							if (Moves[i][0] == Sx && Moves[i][1] == Sy) {
+								PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
+								PTCoords[Selecty][Selectx] = 0;
+								fromX = Selectx;
+								fromY = Selecty;
+								toX = Sx;
+								toY = Sy;
+								takenPiece = 0;
+								cont = false;
+								selection = false;
+								break;
+							} else if (Attacks[i][0] == Sx && Attacks[i][1] == Sy) {
+								takenPiece = PTCoords[Attacks[i][1]][Attacks[i][0]];
+								PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
+								PTCoords[Selecty][Selectx] = 0;
+								fromX = Selectx;
+								fromY = Selecty;
+								toX = Sx;
+								toY = Sy;
+								cont = false;
+								selection = false;
+								break;
 							}
-							if (Turn == 'W') {
-								Turn = 'B';
-							} else {
-								Turn = 'W';
-							}
-							Send(fromX, fromY, toX, toY, ifCheck, takenPiece);
-							for (int k = 0; k < 30; k++) {
-								for (int j = 0; j < 2; j++) {
-									Moves[k][j] = -1;
-									Attacks[k][j] = -1;
-								}
-							}
+
+						//Generates Moves if piece is selected
 						}
-						if (n == 1) {
-							for (int i = 0; i < 8; i++) {
-								for (int j = 0; j < 8; j++) {
-									PCoords[j][i] = PTCoords[j][i];
+						if (cont) {
+							if ((PTCoords[Sy][Sx] != 00) && ((PTCoords[Sy][Sx] > 20 && Turn == 'B')
+									|| (PTCoords[Sy][Sx] > 10 && PTCoords[Sy][Sx] < 20 && Turn == 'W'))) {
+								try {
+									genMoves(Sx, Sy, PTCoords[Sy][Sx]);
+								} catch (Exception e1) {
+									// TODO Auto-generated catch block
+									e1.printStackTrace();
 								}
+								selection = true;
+								Selectx = Sx;
+								Selecty = Sy;
 							}
-							if (CheckmateCheck(Turn)) {
-								ifCheck = 2;
-								checkmate = 100;
-								Turn = 'L';
-							} else {
+						} else {		//Checks for check and checkmate
+							int n = Checkcheck(Turn);
+							System.out.println(n);
+							if (n == 2) {		//No check or checkmate
+								for (int i = 0; i < 8; i++) {
+									for (int j = 0; j < 8; j++) {
+										PCoords[j][i] = PTCoords[j][i];
+									}
+								}
 								if (Turn == 'W') {
 									Turn = 'B';
 								} else {
 									Turn = 'W';
 								}
-								ifCheck = 100;
 								Send(fromX, fromY, toX, toY, ifCheck, takenPiece);
-								check = 100;
 								for (int k = 0; k < 30; k++) {
 									for (int j = 0; j < 2; j++) {
 										Moves[k][j] = -1;
@@ -1637,38 +1796,88 @@ public class Board extends JPanel implements ActionListener {
 									}
 								}
 							}
-						}
-						if (n == 0) {
-							for (int i = 0; i < 8; i++) {
-								for (int j = 0; j < 8; j++) {
-									PTCoords[j][i] = PCoords[j][i];
+							if (n == 1) {		//Check is detected, Checkmate checked within if statement
+								for (int i = 0; i < 8; i++) {
+									for (int j = 0; j < 8; j++) {
+										PCoords[j][i] = PTCoords[j][i];
+									}
+								}
+								if (CheckmateCheck(Turn)) {
+									ifCheck = 2;
+									checkmate = 100;
+									Turn = 'L';
+								} else {
+									if (Turn == 'W') {
+										Turn = 'B';
+									} else {
+										Turn = 'W';
+									}
+									ifCheck = 100;
+									Send(fromX, fromY, toX, toY, ifCheck, takenPiece);
+									check = 100;
+									for (int k = 0; k < 30; k++) {
+										for (int j = 0; j < 2; j++) {
+											Moves[k][j] = -1;
+											Attacks[k][j] = -1;
+										}
+									}
+								}
+							}
+							if (n == 0) {			//move jeopardizes piece's own king, move is cancelled
+								for (int i = 0; i < 8; i++) {
+									for (int j = 0; j < 8; j++) {
+										PTCoords[j][i] = PCoords[j][i];
+									}
 								}
 							}
 						}
 					}
 				}
+				break;
 			}
 
 		}
+
+		private boolean button(int buttonx, int buttony, int buttonWidth, int buttonHeight, int x, int y) {
+			boolean ispressed = false;
+			if (x > buttonx && x < buttonx + buttonWidth && y > buttony && y < buttony + buttonHeight) {
+				ispressed = true;
+			}
+			return ispressed;
+
+		}
+
 	}
 
 	public void Send(int InitialPositionX, int InitialPositionY, int FinalPositionX, int FinalPositionY, int check,
 			int takenPiece) {
-		if (piece == 'W') {
-			InitialPositionX = 7 - InitialPositionX;
-			InitialPositionY = 7 - InitialPositionY;
-			FinalPositionX = 7 - FinalPositionX;
-			FinalPositionY = 7 - FinalPositionY;
-		}
 
 		try {
 			out.writeInt(1);
+			out.writeChar(Turn);
 			out.writeInt(InitialPositionX);
 			out.writeInt(InitialPositionY);
 			out.writeInt(FinalPositionX);
 			out.writeInt(FinalPositionY);
 			out.writeInt(check);
 			out.writeInt(takenPiece);
+			System.out.println(takenPiece);
+
+			if (((takenPiece > 20) && (color == 'W')) || ((takenPiece < 20) && (color == 'B'))) {
+				for (int i = 0; i < Fbox.length; i++) {
+					if (Fbox[i] == 0) {
+						Fbox[i] = takenPiece;
+						break;
+					}
+				}
+			} else {
+				for (int i = 0; i < Ebox.length; i++) {
+					if (Ebox[i] == 0) {
+						Ebox[i] = takenPiece;
+						break;
+					}
+				}
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1718,15 +1927,15 @@ class Input implements Runnable {
 					takenPiece = in.readInt();
 					System.out.println("recieved");
 					board.Turn = turn;
-					board.PCoords[toy][tox] = board.PCoords[fromy][fromx];
-					board.PCoords[fromy][fromx] = 0;
-					board.PTCoords[toy][tox] = board.PCoords[toy][tox];
-					board.PTCoords[fromy][fromx] = board.PCoords[fromy][fromx];
+					board.PCoords[7 - toy][7 - tox] = board.PCoords[7 - fromy][7 - fromx];
+					board.PCoords[7 - fromy][7 - fromx] = 0;
+					board.PTCoords[7 - toy][7 - tox] = board.PCoords[7 - toy][7 - tox];
+					board.PTCoords[7 - fromy][7 - fromx] = board.PCoords[7 - fromy][7 - fromx];
 					board.check = check;
 
 					System.out.println(takenPiece);
 
-					if (((takenPiece > 20) && (board.piece == 'W')) || ((takenPiece < 20) && (board.piece == 'B'))) {
+					if (((takenPiece > 20) && (board.color == 'W')) || ((takenPiece < 20) && (board.color == 'B'))) {
 						for (int i = 0; i < board.Fbox.length; i++) {
 							if (board.Fbox[i] == 0) {
 								board.Fbox[i] = takenPiece;
@@ -1755,8 +1964,10 @@ class Input implements Runnable {
 				}
 				System.out.println("did");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				System.out.println("Other player has disconnected");
 				e.printStackTrace();
+				board.Reset();
+				break;
 			}
 		}
 	}

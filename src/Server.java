@@ -1,4 +1,7 @@
 import java.net.*;
+
+import javax.swing.JPanel;
+
 import java.io.*;
 
 public class Server {
@@ -8,27 +11,24 @@ public class Server {
 	static DataOutputStream out;
 	static Users[] user = new Users[2];
 	static DataInputStream in;
-
-	public static void main(String[] args) throws Exception {
+	
+	public Server() throws Exception {
+		run();
+	}
+	
+	public void run() throws Exception {
 		Say("Starting Server...");
 		serverSocket = new ServerSocket(7777);
 		Say("Server Started...");
 		while (true) {
+			Say("loop started");
 			socket = serverSocket.accept();
+			Say("Thing Did");
 			for (int i = 0; i < 2; i++) {
 				if (user[i] == null) {
 					System.out.println("Connection from:" + socket.getInetAddress());
 					out = new DataOutputStream(socket.getOutputStream());
-					char c = 'W';
-					if (i == 0) {
-						c = 'B';
-					}
-					System.out.println("tried");
-					out.writeChar(c);
-					System.out.println("Did");
-
 					in = new DataInputStream(socket.getInputStream());
-
 					user[i] = new Users(out, in, user);
 					Thread thread = new Thread(user[i]);
 					thread.start();
@@ -108,6 +108,8 @@ class Users implements Runnable {
 					user[0].out.writeInt(2);
 					user[0].out.writeUTF(message);
 					user[0].out.writeChar(who);
+					
+					
 					user[1].out.writeInt(2);
 					user[1].out.writeUTF(message);
 					user[1].out.writeChar(who);
