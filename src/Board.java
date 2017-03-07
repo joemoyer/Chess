@@ -33,8 +33,7 @@ public class Board extends JPanel implements ActionListener {
 	private URL backgroundURL, WpawnURL, WrookURL, WknightURL, WbishopURL, WqueenURL, WkingURL, BpawnURL, BrookURL,
 			BknightURL, BbishopURL, BqueenURL, BkingURL, SboxURL, MboxURL, AboxURL, CheckboxURL, CheckmateBoxURL,
 			MainMenuURL, PlayMenuURL, JoinMenuURL, LboxURL, BlackBarURL;
-	public boolean selection = false, CanCastle = true, CastleLeft = false, CastleRight = false, errorMessage = false,
-			isHosting = false, disconnect = false;
+	public boolean selection = false, CanCastle = true, errorMessage = false, isHosting = false, disconnect = false, inCheck = false;
 
 	public int pause = 0;
 
@@ -241,8 +240,6 @@ public class Board extends JPanel implements ActionListener {
 	public void Reset() {
 		selection = false;
 		CanCastle = true;
-		CastleLeft = false;
-		CastleRight = false;
 		errorMessage = false;
 		isHosting = false;
 
@@ -875,6 +872,14 @@ public class Board extends JPanel implements ActionListener {
 						addKey('.');
 					}
 				}
+				
+				if (key == KeyEvent.VK_COMMA) {
+					if (Shift) {
+						addKey('<');
+					} else {
+						addKey(',');
+					}
+				}
 				if (key == KeyEvent.VK_SPACE) {
 					addKey(' ');
 				}
@@ -895,7 +900,17 @@ public class Board extends JPanel implements ActionListener {
 					if (state == GameState.Game) {
 						SendMessage(Chatbar);
 					}
+					if (state == GameState.JoinMenu) {
+						try {
+							Join(IpBar);
+							state = GameState.Game;
+							IpBar = "";
+						} catch (Exception e1) {
+							errorMessage = true;
+						}
+					}
 					Chatbar = "";
+					IpBar = "";
 				}
 			}
 		}
@@ -978,7 +993,7 @@ public class Board extends JPanel implements ActionListener {
 		switch (piece) {
 		case 11:
 
-			if (piece == 'W') {
+			if (color == 'W') {
 				if (inbounds(x, y - 1)) {
 					if (PTCoords[y - 1][x] == 0) {
 						Moves[i][0] = x;
@@ -1009,7 +1024,7 @@ public class Board extends JPanel implements ActionListener {
 				}
 			}
 
-			if (piece == 'B') {
+			if (color == 'B') {
 				if (inbounds(x, y + 1)) {
 					if (PTCoords[y + 1][x] == 0) {
 						Moves[i][0] = x;
@@ -1040,7 +1055,7 @@ public class Board extends JPanel implements ActionListener {
 			break;
 		case 21:
 
-			if (piece == 'W') {
+			if (color == 'W') {
 				if (inbounds(x, y + 1)) {
 					if (PTCoords[y + 1][x] == 0) {
 						Moves[i][0] = x;
@@ -1069,7 +1084,7 @@ public class Board extends JPanel implements ActionListener {
 				}
 			}
 
-			if (piece == 'B') {
+			if (color == 'B') {
 				if (inbounds(x, y - 1)) {
 					if (PTCoords[y - 1][x] == 0) {
 						Moves[i][0] = x;
@@ -1619,12 +1634,32 @@ public class Board extends JPanel implements ActionListener {
 		case 16:
 		case 26:
 
-			if (CanCastle == true && Turn == piece) {
-				if ((PTCoords[7][0] == 12 || PTCoords[7][0] == 22) && PTCoords[7][1] == 0 && PTCoords[7][2] == 0) {
-					CastleLeft = true;
+			if (color == 'B') {
+				if (PTCoords[7][0] == 22 && PTCoords[7][1] == 0 && PTCoords[7][2] == 0 && PTCoords[7][3] == 26
+						&& CanCastle == true) {
+					Moves[i][0] = 1;
+					Moves[i][1] = 7;
+					i++;
 				}
-				if (PTCoords[7][7] == 12 || PTCoords[7][7] == 22) {
-					CastleRight = true;
+				if (PTCoords[7][7] == 22 && PTCoords[7][6] == 0 && PTCoords[7][5] == 0 && PTCoords[7][4] == 0
+						&& PTCoords[7][3] == 26 && CanCastle == true) {
+					Moves[i][0] = 5;
+					Moves[i][1] = 7;
+					i++;
+				}
+			}
+			if (color == 'W') {
+				if (PTCoords[7][0] == 12 && PTCoords[7][1] == 0 && PTCoords[7][2] == 0 && PTCoords[7][3] == 0
+						&& PTCoords[7][4] == 16 && CanCastle == true) {
+					Moves[i][0] = 2;
+					Moves[i][1] = 7;
+					i++;
+				}
+				if (PTCoords[7][7] == 12 && PTCoords[7][6] == 0 && PTCoords[7][5] == 0 && PTCoords[7][4] == 16
+						&& CanCastle == true) {
+					Moves[i][0] = 6;
+					Moves[i][1] = 7;
+					i++;
 				}
 			}
 
@@ -1801,8 +1836,6 @@ public class Board extends JPanel implements ActionListener {
 		return check;
 	}
 
-	int[] coords = { 4, 4, 4, 4 };
-
 	public boolean CheckmateCheck(char turn) {
 		boolean checkmate = true;
 
@@ -1823,15 +1856,9 @@ public class Board extends JPanel implements ActionListener {
 							System.out.println("after " + PTCoords[Moves[k][1]][Moves[k][0]]);
 							System.out.println("To (" + Moves[k][1] + ", " + Moves[k][0] + ")");
 							int piece = PTCoords[Moves[k][1]][Moves[k][0]];
-							coords[0] = i;
-							coords[1] = j;
-							coords[2] = Moves[k][0];
-							coords[3] = Moves[k][1];
 							PTCoords[j][i] = 0;
 							if (Checkcheck(turn) != 1) {
 								checkmate = false;
-								System.out.println("(" + coords[0] + ", " + coords[1] + ") to (" + coords[2] + ", "
-										+ coords[3] + ")");
 							}
 							for (int l = 0; l < 8; l++) {
 								for (int m = 0; m < 8; m++) {
@@ -1974,6 +2001,7 @@ public class Board extends JPanel implements ActionListener {
 				int toY = 0;
 				int ifCheck = 0;
 				int takenPiece = 0;
+				char CastleDirection = 'N';
 
 				if ((x > 310 && x < 822) && (y > 60 && y < 588) && (color == Turn)) {
 
@@ -1984,6 +2012,14 @@ public class Board extends JPanel implements ActionListener {
 					if ((Sx <= 7 && Sx >= 0) && (Sy <= 7 && Sy >= 0)) {
 						boolean cont = true;
 						for (int i = 0; i < 30; i++) {
+							if ((PTCoords[Selecty][Selectx] == 16 || PTCoords[Selecty][Selectx] == 26)
+									&& Math.abs(Selectx - Sx) > 1 && inCheck == false) {
+								if (Selectx - Sx == 2) {
+									CastleDirection = 'L';
+								} else if (Sx - Selectx == 2) {
+									CastleDirection = 'R';
+								}
+							}
 							if (Moves[i][0] == Sx && Moves[i][1] == Sy) {
 								PTCoords[Sy][Sx] = PTCoords[Selecty][Selectx];
 								PTCoords[Selecty][Selectx] = 0;
@@ -2032,7 +2068,7 @@ public class Board extends JPanel implements ActionListener {
 								} else {
 									Turn = 'W';
 								}
-								Send(fromX, fromY, toX, toY, ifCheck, takenPiece);
+								Send(fromX, fromY, toX, toY, ifCheck, takenPiece, CastleDirection);
 								for (int k = 0; k < 30; k++) {
 									for (int j = 0; j < 2; j++) {
 										Moves[k][j] = -1;
@@ -2060,7 +2096,7 @@ public class Board extends JPanel implements ActionListener {
 										Turn = 'W';
 									}
 									ifCheck = 100;
-									Send(fromX, fromY, toX, toY, ifCheck, takenPiece);
+									Send(fromX, fromY, toX, toY, ifCheck, takenPiece, CastleDirection);
 									check = 100;
 									for (int k = 0; k < 30; k++) {
 										for (int j = 0; j < 2; j++) {
@@ -2098,7 +2134,7 @@ public class Board extends JPanel implements ActionListener {
 	}
 
 	public void Send(int InitialPositionX, int InitialPositionY, int FinalPositionX, int FinalPositionY, int check,
-			int takenPiece) {
+			int takenPiece, char CastleDirection) {
 
 		try {
 			out.writeInt(1);
@@ -2109,7 +2145,11 @@ public class Board extends JPanel implements ActionListener {
 			out.writeInt(FinalPositionY);
 			out.writeInt(check);
 			out.writeInt(takenPiece);
-			System.out.println(takenPiece);
+			out.writeChar(CastleDirection);
+
+			if (PCoords[FinalPositionY][FinalPositionX] == 16 || PCoords[FinalPositionY][FinalPositionX] == 26) {
+				CanCastle = false;
+			}
 
 			for (int i = 0; i < LastMove.length; i++) {
 				for (int j = 0; j < LastMove[i].length; j++) {
@@ -2132,9 +2172,55 @@ public class Board extends JPanel implements ActionListener {
 					}
 				}
 			}
+			
+			
+			if (color == 'W') {
+				if (CastleDirection == 'L') {
+					PTCoords[7][3] = PTCoords[7][0];
+					PTCoords[7][0] = 0;
+					PCoords[7][3] = PCoords[7][0];
+					PCoords[7][0] = 0;
+				}
+				if (CastleDirection == 'R') {
+					PTCoords[7][5] = PTCoords[7][7];
+					PTCoords[7][7] = 0;
+					PCoords[7][5] = PCoords[7][7];
+					PCoords[7][7] = 0;
+				}							
+			} else {
+				if (CastleDirection == 'L') {
+					PTCoords[7][2] = PTCoords[7][0];
+					PTCoords[7][0] = 0;
+					PCoords[7][2] = PCoords[7][0];
+					PCoords[7][0] = 0;
+				}
+				if (CastleDirection == 'R') {
+					PTCoords[7][4] = PTCoords[7][7];
+					PTCoords[7][7] = 0;
+					PCoords[7][4] = PCoords[7][7];
+					PCoords[7][7] = 0;
+				}
+			}
+			
+			if ((PCoords[FinalPositionY][FinalPositionX] == 11 || PCoords[FinalPositionY][FinalPositionX] == 21) && FinalPositionY == 0) {
+				if (color == 'W') {
+					PCoords[FinalPositionY][FinalPositionX] = 15;
+					PTCoords[FinalPositionY][FinalPositionX] = 15;
+					SendPiece(15, FinalPositionX, FinalPositionY);		
+				} else {
+					PCoords[FinalPositionY][FinalPositionX] = 25;
+					PTCoords[FinalPositionY][FinalPositionX] = 25;
+					SendPiece(25, FinalPositionX, FinalPositionY);
+				}
+			}
+			
+			inCheck = false;
+			
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.out.println("failed to send move");
 		}
 	}
 
@@ -2144,8 +2230,23 @@ public class Board extends JPanel implements ActionListener {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			System.out.println("failed to send checkmate");
 		}
 	}
+	
+	public void SendPiece(int piece, int x, int y) {
+		try {
+			out.writeInt(4);
+			out.writeInt(piece);
+			out.writeInt(x);
+			out.writeInt(y);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.out.println("failed to send piece");
+		}
+	}
+	
 }
 
 /*
@@ -2168,6 +2269,7 @@ class Input implements Runnable {
 	int check;
 	int takenPiece;
 	char turn = 'W';
+	char CastleDirection = 'N';
 
 	public Input(DataInputStream in, Board board) {
 		this.in = in;
@@ -2188,18 +2290,49 @@ class Input implements Runnable {
 					toy = in.readInt();
 					check = in.readInt();
 					takenPiece = in.readInt();
-					System.out.println("recieved");
+					CastleDirection = in.readChar();
 					board.Turn = turn;
 					board.PCoords[7 - toy][7 - tox] = board.PCoords[7 - fromy][7 - fromx];
 					board.PCoords[7 - fromy][7 - fromx] = 0;
 					board.PTCoords[7 - toy][7 - tox] = board.PCoords[7 - toy][7 - tox];
 					board.PTCoords[7 - fromy][7 - fromx] = board.PCoords[7 - fromy][7 - fromx];
 					board.check = check;
+					if (check > 0) {
+						board.inCheck = true;
+					}
 
 					board.LastMove[0][0] = 7 - tox;
 					board.LastMove[0][1] = 7 - toy;
 					board.LastMove[1][0] = 7 - fromx;
 					board.LastMove[1][1] = 7 - fromy;
+
+					if (board.color == 'B') {
+						if (CastleDirection == 'L') {
+							board.PTCoords[0][4] = board.PTCoords[0][7];
+							board.PTCoords[0][7] = 0;
+							board.PCoords[0][4] = board.PCoords[0][7];
+							board.PCoords[0][7] = 0;
+						}
+						if (CastleDirection == 'R') {
+							board.PTCoords[0][2] = board.PTCoords[0][0];
+							board.PTCoords[0][0] = 0;
+							board.PCoords[0][2] = board.PCoords[0][0];
+							board.PCoords[0][0] = 0;
+						}							
+					} else {
+						if (CastleDirection == 'L') {
+							board.PTCoords[0][5] = board.PTCoords[0][7];
+							board.PTCoords[0][7] = 0;
+							board.PCoords[0][5] = board.PCoords[0][7];
+							board.PCoords[0][7] = 0;
+						}
+						if (CastleDirection == 'R') {
+							board.PTCoords[0][3] = board.PTCoords[0][0];
+							board.PTCoords[0][0] = 0;
+							board.PCoords[0][3] = board.PCoords[0][0];
+							board.PCoords[0][0] = 0;
+						}
+					}
 
 					System.out.println(takenPiece);
 
@@ -2232,6 +2365,12 @@ class Input implements Runnable {
 				} else if (InputType == 3) {
 					board.checkmate = 100;
 					board.Turn = 'L';
+				} else if (InputType == 4) {
+					int piece = in.readInt();
+					int x = in.readInt();
+					int y = in.readInt();
+					board.PCoords[7-y][7-x] = piece;
+					board.PTCoords[7-y][7-x] = piece;
 				}
 				System.out.println("did");
 			} catch (IOException e) {
