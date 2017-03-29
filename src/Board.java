@@ -29,12 +29,18 @@ public class Board extends JPanel implements ActionListener {
 	private Timer timer;
 	private final int DELAY = 10;
 	private Image background, Wpawn, Wrook, Wknight, Wbishop, Wqueen, Wking, Bpawn, Brook, Bknight, Bbishop, Bqueen,
-			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, MainMenu, PlayMenu, JoinMenu, Lbox, BlackBar;
+			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, MainMenu, PlayMenu, JoinMenu, Lbox, BlackBar, I1, I2, I3, I4, I5, I6, I7, Instructions = I1;
+
 	private URL backgroundURL, WpawnURL, WrookURL, WknightURL, WbishopURL, WqueenURL, WkingURL, BpawnURL, BrookURL,
 			BknightURL, BbishopURL, BqueenURL, BkingURL, SboxURL, MboxURL, AboxURL, CheckboxURL, CheckmateBoxURL,
-			MainMenuURL, PlayMenuURL, JoinMenuURL, LboxURL, BlackBarURL;
-	public boolean selection = false, CanCastle = true, errorMessage = false, isHosting = false, disconnect = false, inCheck = false;
+			MainMenuURL, PlayMenuURL, JoinMenuURL, LboxURL, BlackBarURL, I1URL, I2URL, I3URL, I4URL, I5URL, I6URL, I7URL;
+	public boolean selection = false, CanCastle = true, errorMessage = false, isHosting = false, disconnect = false,
+			inCheck = false, IpBarType = true, ChatBarType = true;
 
+	public final int Animations = 200; 
+	
+	public Animation animation[] = new Animation[Animations];
+	
 	public int pause = 0;
 
 	public Graphics g;
@@ -164,6 +170,14 @@ public class Board extends JPanel implements ActionListener {
 		JoinMenuURL = Board.class.getResource("/resources/JoinMenu.png");
 		BlackBarURL = Board.class.getResource("/resources/WhiteBar.png");
 		LboxURL = Board.class.getResource("/resources/LastMove.png");
+		
+		I1URL = Board.class.getResource("/resources/Instructions1.png");
+		I2URL = Board.class.getResource("/resources/Instructions2.png");
+		I3URL = Board.class.getResource("/resources/Instructions3.png");
+		I4URL = Board.class.getResource("/resources/Instructions4.png");
+		I5URL = Board.class.getResource("/resources/Instructions5.png");
+		I6URL = Board.class.getResource("/resources/Instructions6.png");
+		I7URL = Board.class.getResource("/resources/Instructions7.png");
 
 		background = new ImageIcon(backgroundURL).getImage();
 		Wpawn = new ImageIcon(WpawnURL).getImage();
@@ -188,6 +202,14 @@ public class Board extends JPanel implements ActionListener {
 		JoinMenu = new ImageIcon(JoinMenuURL).getImage();
 		Lbox = new ImageIcon(LboxURL).getImage();
 		BlackBar = new ImageIcon(BlackBarURL).getImage();
+		
+		I1 = new ImageIcon(I1URL).getImage();
+		I2 = new ImageIcon(I2URL).getImage();
+		I3 = new ImageIcon(I3URL).getImage();
+		I4 = new ImageIcon(I4URL).getImage();
+		I5 = new ImageIcon(I5URL).getImage();
+		I6 = new ImageIcon(I6URL).getImage();
+		I7 = new ImageIcon(I7URL).getImage();
 
 	}
 
@@ -335,11 +357,34 @@ public class Board extends JPanel implements ActionListener {
 
 		Toolkit.getDefaultToolkit().sync();
 	}
+	
+	private int randInt(int min, int max) {
+		int number = 0;
+		number = min + (int)(Math.random() * max); 
+		return number;
+	}
 
 	private void doDrawing(Graphics g) {
 
 		Graphics2D g2d = (Graphics2D) g;
 
+		/*	for (int i = 0; i < Animations; i++) {
+
+			if (animation[i] == null) {
+				animation[i] = new Animation(getImage(randInt(11, 16)), randInt(0, 1200), randInt(1000, 1250), randInt(1, 5));
+			}	
+			else {
+				animation[i].update();
+			}
+			g2d.drawImage(animation[i].getImage(), animation[i].getX(), animation[i].getY(), this);
+			if (animation[i].getY() < -70) {
+				animation[i] = null;
+			}
+		}*/
+		
+		
+		
+		
 		switch (state) {
 
 		case MainMenu:
@@ -362,9 +407,17 @@ public class Board extends JPanel implements ActionListener {
 			if (errorMessage) {
 				drawString(g2d, "Could not connect, try again", "Calibri", Color.RED, 12, 850, 200);
 			}
+
+			if (g2d.getFontMetrics().stringWidth(IpBar) > 320) {
+				IpBarType = false;
+			} else {
+				IpBarType = true;
+			}
+
 			break;
 
 		case Instructions:
+			g2d.drawImage(Instructions, 0, 0, this);
 			break;
 
 		case Game:
@@ -463,6 +516,20 @@ public class Board extends JPanel implements ActionListener {
 				g2d.drawImage(CheckmateBox, 375, 275, this);
 				checkmate -= 1;
 			}
+			if (g2d.getFontMetrics().stringWidth(ChatBox[0]) > 800) {
+				for (int i = ChatBox[0].length(); i > 0; i--) {
+					if (g2d.getFontMetrics().stringWidth(ChatBox[0].substring(0, i)) < 800) {
+						for (int j = ChatBox.length - 1; j > 1; j--) {
+							ChatBox[j] = ChatBox[j - 1];
+						}
+						ChatBox[1] = ChatBox[0].substring(0, i);
+						ChatBox[0] = ChatBox[0].substring(i);
+						System.out.println(g2d.getFontMetrics().stringWidth(ChatBox[0]));
+						break;
+					}
+				}
+			}
+			
 			for (int i = 0; i < ChatBox.length; i++) {
 				drawString(g2d, ChatBox[i], "Times New Roman", Color.WHITE, 18, 900, 525 - (35 * i));
 			}
@@ -477,6 +544,12 @@ public class Board extends JPanel implements ActionListener {
 				p++;
 			} else if (p >= 2 * blinkPause) {
 				p = 0;
+			}
+
+			if (g2d.getFontMetrics().stringWidth(Chatbar) > 285) {
+				ChatBarType = false;
+			} else {
+				ChatBarType = true;
 			}
 
 			if (isHosting == true) {
@@ -807,7 +880,6 @@ public class Board extends JPanel implements ActionListener {
 				if (key == KeyEvent.VK_DECIMAL) {
 					addKey('.');
 				}
-
 				if (key == KeyEvent.VK_MINUS) {
 					if (Shift) {
 						addKey('_');
@@ -872,7 +944,7 @@ public class Board extends JPanel implements ActionListener {
 						addKey('.');
 					}
 				}
-				
+
 				if (key == KeyEvent.VK_COMMA) {
 					if (Shift) {
 						addKey('<');
@@ -918,11 +990,11 @@ public class Board extends JPanel implements ActionListener {
 		public void addKey(char input) {
 			String addition = Character.toString(input);
 			if (state == GameState.Game) {
-				if (Chatbar.length() < 80) {
+				if (ChatBarType) {
 					Chatbar += addition;
 				}
 			} else if (state == GameState.JoinMenu) {
-				if (IpBar.length() < 20) {
+				if (IpBarType) {
 					IpBar += addition;
 				}
 			}
@@ -1799,25 +1871,41 @@ public class Board extends JPanel implements ActionListener {
 					a++;
 				}
 			}
+
 			break;
 		}
 	}
 
 	public int Checkcheck(char turn) {
 		int check = -1;
-		for (int i = 0; i < 8; i++) {
+		for (int i = 0; i < 8; i++) { // Finds each piece on board
 			for (int j = 0; j < 8; j++) {
-				genMoves(i, j, PTCoords[j][i]);
+				genMoves(i, j, PTCoords[j][i]); // Scans Every Attack of Enemy
+												// pieces
 				for (int k = 0; k < 30; k++) {
-					if (Attacks[k][1] != -1 || Attacks[k][0] != -1) {
-						if ((turn == 'W' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 26)
-								|| (turn == 'B' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 16)) {
-							check = 1;
+					if (Attacks[k][1] != -1 || Attacks[k][0] != -1) { // If
+																		// Attack
+																		// in
+																		// slot
+						if ((turn == 'W' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 26) // If
+																							// Piece
+																							// can
+																							// attack
+																							// enemy
+																							// king
+								|| (turn == 'B' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 16)) { //
+							check = 1; // Then check = true
 
 						}
-						if ((turn == 'W' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 16)
+						if ((turn == 'W' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 16) // If
+																							// move
+																							// puts
+																							// own
+																							// king
+																							// in
+																							// check
 								|| (turn == 'B' && PTCoords[Attacks[k][1]][Attacks[k][0]] == 26)) {
-							check = 0;
+							check = 0; // Move is cancelled
 							break;
 
 						}
@@ -1855,7 +1943,7 @@ public class Board extends JPanel implements ActionListener {
 							PTCoords[Moves[k][1]][Moves[k][0]] = PTCoords[j][i];
 							System.out.println("after " + PTCoords[Moves[k][1]][Moves[k][0]]);
 							System.out.println("To (" + Moves[k][1] + ", " + Moves[k][0] + ")");
-							int piece = PTCoords[Moves[k][1]][Moves[k][0]];
+
 							PTCoords[j][i] = 0;
 							if (Checkcheck(turn) != 1) {
 								checkmate = false;
@@ -1992,6 +2080,36 @@ public class Board extends JPanel implements ActionListener {
 				break;
 
 			case Instructions:
+				int page = 1;
+				
+				switch (page) {
+				case 1: 
+					Instructions = I1;
+					break;
+				case 2: 
+					Instructions = I2;
+					break;
+				case 3: 
+					Instructions = I3;
+					break;
+				case 4: 
+					Instructions = I4;
+					break;
+				case 5: 
+					Instructions = I5;
+					break;
+				case 6: 
+					Instructions = I6;
+					break;
+				case 7: 
+					Instructions = I7;
+					break;
+				}
+				
+				if (button(770, 400, 415, 70, (int) x, (int) y)) {
+					state = GameState.PlayMenu;
+				}
+				
 				break;
 
 			case Game:
@@ -2087,7 +2205,9 @@ public class Board extends JPanel implements ActionListener {
 									ifCheck = 2;
 									checkmate = 100;
 									Turn = 'L';
+									Send(fromX, fromY, toX, toY, ifCheck, takenPiece, CastleDirection);
 									SendCheckMate();
+									UpdateMessage("Checkmate, You've Won!");
 									break;
 								} else {
 									if (Turn == 'W') {
@@ -2172,8 +2292,7 @@ public class Board extends JPanel implements ActionListener {
 					}
 				}
 			}
-			
-			
+
 			if (color == 'W') {
 				if (CastleDirection == 'L') {
 					PTCoords[7][3] = PTCoords[7][0];
@@ -2186,7 +2305,7 @@ public class Board extends JPanel implements ActionListener {
 					PTCoords[7][7] = 0;
 					PCoords[7][5] = PCoords[7][7];
 					PCoords[7][7] = 0;
-				}							
+				}
 			} else {
 				if (CastleDirection == 'L') {
 					PTCoords[7][2] = PTCoords[7][0];
@@ -2201,22 +2320,22 @@ public class Board extends JPanel implements ActionListener {
 					PCoords[7][7] = 0;
 				}
 			}
-			
-			if ((PCoords[FinalPositionY][FinalPositionX] == 11 || PCoords[FinalPositionY][FinalPositionX] == 21) && FinalPositionY == 0) {
+
+			if ((PCoords[FinalPositionY][FinalPositionX] == 11 || PCoords[FinalPositionY][FinalPositionX] == 21)
+					&& FinalPositionY == 0) {
 				if (color == 'W') {
 					PCoords[FinalPositionY][FinalPositionX] = 15;
 					PTCoords[FinalPositionY][FinalPositionX] = 15;
-					SendPiece(15, FinalPositionX, FinalPositionY);		
+					SendPiece(15, FinalPositionX, FinalPositionY);
 				} else {
 					PCoords[FinalPositionY][FinalPositionX] = 25;
 					PTCoords[FinalPositionY][FinalPositionX] = 25;
 					SendPiece(25, FinalPositionX, FinalPositionY);
 				}
 			}
-			
+
 			inCheck = false;
-			
-			
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -2233,7 +2352,7 @@ public class Board extends JPanel implements ActionListener {
 			System.out.println("failed to send checkmate");
 		}
 	}
-	
+
 	public void SendPiece(int piece, int x, int y) {
 		try {
 			out.writeInt(4);
@@ -2246,7 +2365,7 @@ public class Board extends JPanel implements ActionListener {
 			System.out.println("failed to send piece");
 		}
 	}
-	
+
 }
 
 /*
@@ -2318,7 +2437,7 @@ class Input implements Runnable {
 							board.PTCoords[0][0] = 0;
 							board.PCoords[0][2] = board.PCoords[0][0];
 							board.PCoords[0][0] = 0;
-						}							
+						}
 					} else {
 						if (CastleDirection == 'L') {
 							board.PTCoords[0][5] = board.PTCoords[0][7];
@@ -2365,12 +2484,13 @@ class Input implements Runnable {
 				} else if (InputType == 3) {
 					board.checkmate = 100;
 					board.Turn = 'L';
+					board.UpdateMessage("Checkmate, You've Lost.");
 				} else if (InputType == 4) {
 					int piece = in.readInt();
 					int x = in.readInt();
 					int y = in.readInt();
-					board.PCoords[7-y][7-x] = piece;
-					board.PTCoords[7-y][7-x] = piece;
+					board.PCoords[7 - y][7 - x] = piece;
+					board.PTCoords[7 - y][7 - x] = piece;
 				}
 				System.out.println("did");
 			} catch (IOException e) {
