@@ -29,23 +29,35 @@ public class Board extends JPanel implements ActionListener {
 	private Timer timer;
 	private final int DELAY = 10;
 	private Image background, Wpawn, Wrook, Wknight, Wbishop, Wqueen, Wking, Bpawn, Brook, Bknight, Bbishop, Bqueen,
-			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, MainMenu, PlayMenu, JoinMenu, Lbox, BlackBar, I1, I2, I3, I4, I5, I6, I7, Instructions = I1;
+			Bking, Sbox, Mbox, Abox, Checkbox, CheckmateBox, MainMenu, PlayMenu, JoinMenu, Lbox, BlackBar, I1, I2, I3,
+			I4, I5, I6, I7, Instructions, GrayBoard, RedBoard, BrownBoard, Settings, Checkmark, Cbackground;
 
 	private URL backgroundURL, WpawnURL, WrookURL, WknightURL, WbishopURL, WqueenURL, WkingURL, BpawnURL, BrookURL,
 			BknightURL, BbishopURL, BqueenURL, BkingURL, SboxURL, MboxURL, AboxURL, CheckboxURL, CheckmateBoxURL,
-			MainMenuURL, PlayMenuURL, JoinMenuURL, LboxURL, BlackBarURL, I1URL, I2URL, I3URL, I4URL, I5URL, I6URL, I7URL;
+			MainMenuURL, PlayMenuURL, JoinMenuURL, LboxURL, BlackBarURL, I1URL, I2URL, I3URL, I4URL, I5URL, I6URL,
+			I7URL, GrayBoardURL, RedBoardURL, BrownBoardURL, SettingsURL, CheckmarkURL, CbackgroundURL;
 	public boolean selection = false, CanCastle = true, errorMessage = false, isHosting = false, disconnect = false,
 			inCheck = false, IpBarType = true, ChatBarType = true;
 
-	public final int Animations = 200; 
-	
+	public final int Animations = 30;
+
 	public Animation animation[] = new Animation[Animations];
-	
-	public int pause = 0;
+
+	public int pause = 0, page = 1;
+
+	public Color brown = new Color(205, 133, 63);
+	public Color grey = new Color(128, 128, 128);
+	public Color red = new Color(255, 102, 102);
+
+	public Color backdrop = grey;
 
 	public Graphics g;
 
 	static GameState state = GameState.MainMenu;
+
+	static BoardType board = BoardType.Grey;
+	static BoardType display = BoardType.Straight;
+	static BoardType pieces = BoardType.Standard;
 
 	static ServerSocket serverSocket;
 	static Socket socket;
@@ -148,18 +160,6 @@ public class Board extends JPanel implements ActionListener {
 	public void LoadImage() {
 
 		backgroundURL = Board.class.getResource("/resources/UImetalic.png");
-		WpawnURL = Board.class.getResource("/resources/Wpawn.png");
-		WrookURL = Board.class.getResource("/resources/Wrook.png");
-		WknightURL = Board.class.getResource("/resources/Wknight.png");
-		WbishopURL = Board.class.getResource("/resources/Wbishop.png");
-		WqueenURL = Board.class.getResource("/resources/Wqueen.png");
-		WkingURL = Board.class.getResource("/resources/Wking.png");
-		BpawnURL = Board.class.getResource("/resources/Bpawn.png");
-		BrookURL = Board.class.getResource("/resources/Brook.png");
-		BknightURL = Board.class.getResource("/resources/Bknight.png");
-		BbishopURL = Board.class.getResource("/resources/Bbishop.png");
-		BqueenURL = Board.class.getResource("/resources/Bqueen.png");
-		BkingURL = Board.class.getResource("/resources/Bking.png");
 		SboxURL = Board.class.getResource("/resources/Select.png");
 		MboxURL = Board.class.getResource("/resources/Move.png");
 		AboxURL = Board.class.getResource("/resources/Attack.png");
@@ -170,7 +170,9 @@ public class Board extends JPanel implements ActionListener {
 		JoinMenuURL = Board.class.getResource("/resources/JoinMenu.png");
 		BlackBarURL = Board.class.getResource("/resources/WhiteBar.png");
 		LboxURL = Board.class.getResource("/resources/LastMove.png");
-		
+		SettingsURL = Board.class.getResource("/resources/Settings.png");
+		CheckmarkURL = Board.class.getResource("/resources/CheckMark.png");
+
 		I1URL = Board.class.getResource("/resources/Instructions1.png");
 		I2URL = Board.class.getResource("/resources/Instructions2.png");
 		I3URL = Board.class.getResource("/resources/Instructions3.png");
@@ -179,7 +181,99 @@ public class Board extends JPanel implements ActionListener {
 		I6URL = Board.class.getResource("/resources/Instructions6.png");
 		I7URL = Board.class.getResource("/resources/Instructions7.png");
 
+		GrayBoardURL = Board.class.getResource("/resources/GrayBoard.png");
+		RedBoardURL = Board.class.getResource("/resources/RedWoodBoard.png");
+		BrownBoardURL = Board.class.getResource("/resources/BrownWoodBoard.png");
+		
+		CbackgroundURL = Board.class.getResource("/resources/ConnectionBackground.png");
+
 		background = new ImageIcon(backgroundURL).getImage();
+		Sbox = new ImageIcon(SboxURL).getImage();
+		Mbox = new ImageIcon(MboxURL).getImage();
+		Abox = new ImageIcon(AboxURL).getImage();
+		Checkbox = new ImageIcon(CheckboxURL).getImage();
+		CheckmateBox = new ImageIcon(CheckmateBoxURL).getImage();
+		MainMenu = new ImageIcon(MainMenuURL).getImage();
+		PlayMenu = new ImageIcon(PlayMenuURL).getImage();
+		JoinMenu = new ImageIcon(JoinMenuURL).getImage();
+		Lbox = new ImageIcon(LboxURL).getImage();
+		BlackBar = new ImageIcon(BlackBarURL).getImage();
+		Settings = new ImageIcon(SettingsURL).getImage();
+		Checkmark = new ImageIcon(CheckmarkURL).getImage();
+
+		I1 = new ImageIcon(I1URL).getImage();
+		I2 = new ImageIcon(I2URL).getImage();
+		I3 = new ImageIcon(I3URL).getImage();
+		I4 = new ImageIcon(I4URL).getImage();
+		I5 = new ImageIcon(I5URL).getImage();
+		I6 = new ImageIcon(I6URL).getImage();
+		I7 = new ImageIcon(I7URL).getImage();
+
+		GrayBoard = new ImageIcon(GrayBoardURL).getImage();
+		RedBoard = new ImageIcon(RedBoardURL).getImage();
+		BrownBoard = new ImageIcon(BrownBoardURL).getImage();
+		
+		Cbackground = new ImageIcon(CbackgroundURL).getImage();
+
+		Instructions = I1;
+
+		UpdatePieces();
+
+	}
+
+	public void UpdatePieces() {
+
+		switch (pieces) {
+
+		case Standard:
+			WpawnURL = Board.class.getResource("/resources/Pieces/Standard/Wpawn.png");
+			WrookURL = Board.class.getResource("/resources/Pieces/Standard/Wrook.png");
+			WknightURL = Board.class.getResource("/resources/Pieces/Standard/Wknight.png");
+			WbishopURL = Board.class.getResource("/resources/Pieces/Standard/Wbishop.png");
+			WqueenURL = Board.class.getResource("/resources/Pieces/Standard/Wqueen.png");
+			WkingURL = Board.class.getResource("/resources/Pieces/Standard/Wking.png");
+			BpawnURL = Board.class.getResource("/resources/Pieces/Standard/Bpawn.png");
+			BrookURL = Board.class.getResource("/resources/Pieces/Standard/Brook.png");
+			BknightURL = Board.class.getResource("/resources/Pieces/Standard/Bknight.png");
+			BbishopURL = Board.class.getResource("/resources/Pieces/Standard/Bbishop.png");
+			BqueenURL = Board.class.getResource("/resources/Pieces/Standard/Bqueen.png");
+			BkingURL = Board.class.getResource("/resources/Pieces/Standard/Bking.png");
+			break;
+
+		case Official:
+			WpawnURL = Board.class.getResource("/resources/Pieces/Official/Wpawn.png");
+			WrookURL = Board.class.getResource("/resources/Pieces/Official/Wrook.png");
+			WknightURL = Board.class.getResource("/resources/Pieces/Official/Wknight.png");
+			WbishopURL = Board.class.getResource("/resources/Pieces/Official/Wbishop.png");
+			WqueenURL = Board.class.getResource("/resources/Pieces/Official/Wqueen.png");
+			WkingURL = Board.class.getResource("/resources/Pieces/Official/Wking.png");
+			BpawnURL = Board.class.getResource("/resources/Pieces/Official/Bpawn.png");
+			BrookURL = Board.class.getResource("/resources/Pieces/Official/Brook.png");
+			BknightURL = Board.class.getResource("/resources/Pieces/Official/Bknight.png");
+			BbishopURL = Board.class.getResource("/resources/Pieces/Official/Bbishop.png");
+			BqueenURL = Board.class.getResource("/resources/Pieces/Official/Bqueen.png");
+			BkingURL = Board.class.getResource("/resources/Pieces/Official/Bking.png");
+			break;
+
+		case Blocky:
+			WpawnURL = Board.class.getResource("/resources/Pieces/Blocky/Wpawn.png");
+			WrookURL = Board.class.getResource("/resources/Pieces/Blocky/Wrook.png");
+			WknightURL = Board.class.getResource("/resources/Pieces/Blocky/Wknight.png");
+			WbishopURL = Board.class.getResource("/resources/Pieces/Blocky/Wbishop.png");
+			WqueenURL = Board.class.getResource("/resources/Pieces/Blocky/Wqueen.png");
+			WkingURL = Board.class.getResource("/resources/Pieces/Blocky/Wking.png");
+			BpawnURL = Board.class.getResource("/resources/Pieces/Blocky/Bpawn.png");
+			BrookURL = Board.class.getResource("/resources/Pieces/Blocky/Brook.png");
+			BknightURL = Board.class.getResource("/resources/Pieces/Blocky/Bknight.png");
+			BbishopURL = Board.class.getResource("/resources/Pieces/Blocky/Bbishop.png");
+			BqueenURL = Board.class.getResource("/resources/Pieces/Blocky/Bqueen.png");
+			BkingURL = Board.class.getResource("/resources/Pieces/Blocky/Bking.png");
+			break;
+		default:
+			break;
+
+		}
+
 		Wpawn = new ImageIcon(WpawnURL).getImage();
 		Wrook = new ImageIcon(WrookURL).getImage();
 		Wknight = new ImageIcon(WknightURL).getImage();
@@ -192,24 +286,6 @@ public class Board extends JPanel implements ActionListener {
 		Bbishop = new ImageIcon(BbishopURL).getImage();
 		Bqueen = new ImageIcon(BqueenURL).getImage();
 		Bking = new ImageIcon(BkingURL).getImage();
-		Sbox = new ImageIcon(SboxURL).getImage();
-		Mbox = new ImageIcon(MboxURL).getImage();
-		Abox = new ImageIcon(AboxURL).getImage();
-		Checkbox = new ImageIcon(CheckboxURL).getImage();
-		CheckmateBox = new ImageIcon(CheckmateBoxURL).getImage();
-		MainMenu = new ImageIcon(MainMenuURL).getImage();
-		PlayMenu = new ImageIcon(PlayMenuURL).getImage();
-		JoinMenu = new ImageIcon(JoinMenuURL).getImage();
-		Lbox = new ImageIcon(LboxURL).getImage();
-		BlackBar = new ImageIcon(BlackBarURL).getImage();
-		
-		I1 = new ImageIcon(I1URL).getImage();
-		I2 = new ImageIcon(I2URL).getImage();
-		I3 = new ImageIcon(I3URL).getImage();
-		I4 = new ImageIcon(I4URL).getImage();
-		I5 = new ImageIcon(I5URL).getImage();
-		I6 = new ImageIcon(I6URL).getImage();
-		I7 = new ImageIcon(I7URL).getImage();
 
 	}
 
@@ -343,7 +419,7 @@ public class Board extends JPanel implements ActionListener {
 		addKeyListener(new TAdapter());
 		addMouseListener(new MAdapter());
 		setFocusable(true);
-		setBackground(Color.GRAY);
+		setBackground(grey);
 
 		timer = new Timer(DELAY, this);
 		timer.start();
@@ -357,10 +433,10 @@ public class Board extends JPanel implements ActionListener {
 
 		Toolkit.getDefaultToolkit().sync();
 	}
-	
+
 	private int randInt(int min, int max) {
 		int number = 0;
-		number = min + (int)(Math.random() * max); 
+		number = min + (int) (Math.random() * max);
 		return number;
 	}
 
@@ -368,23 +444,20 @@ public class Board extends JPanel implements ActionListener {
 
 		Graphics2D g2d = (Graphics2D) g;
 
-		/*	for (int i = 0; i < Animations; i++) {
+		for (int i = 0; i < Animations; i++) {
 
 			if (animation[i] == null) {
-				animation[i] = new Animation(getImage(randInt(11, 16)), randInt(0, 1200), randInt(1000, 1250), randInt(1, 5));
-			}	
-			else {
+				animation[i] = new Animation(getImage(randInt(11, 16)), randInt(0, 1200), randInt(640, 740),
+						randInt(1, 5));
+			} else {
 				animation[i].update();
 			}
 			g2d.drawImage(animation[i].getImage(), animation[i].getX(), animation[i].getY(), this);
 			if (animation[i].getY() < -70) {
 				animation[i] = null;
 			}
-		}*/
-		
-		
-		
-		
+		}
+
 		switch (state) {
 
 		case MainMenu:
@@ -417,143 +490,62 @@ public class Board extends JPanel implements ActionListener {
 			break;
 
 		case Instructions:
-			g2d.drawImage(Instructions, 0, 0, this);
+			g2d.drawImage(Instructions, 0, -10, this);
+			break;
+
+		case Settings:
+
+			g2d.drawImage(Settings, 0, -10, this);
+
+			switch (pieces) {
+			case Standard:
+				g2d.drawImage(Checkmark, 575, 115, this);
+				break;
+			case Official:
+				g2d.drawImage(Checkmark, 575, 190, this);
+				break;
+			case Blocky:
+				g2d.drawImage(Checkmark, 575, 257, this);
+				break;
+			default:
+				break;
+			}
+
+			switch (display) {
+			case Straight:
+				g2d.drawImage(Checkmark, 932, 119, this);
+				break;
+			case Wobbly:
+				g2d.drawImage(Checkmark, 930, 190, this);
+				break;
+			case Circular:
+				g2d.drawImage(Checkmark, 930, 260, this);
+				break;
+			default:
+				break;
+			}
+
+			switch (board) {
+			case Grey:
+				g2d.drawImage(Checkmark, 312, 425, this);
+				break;
+			case Red:
+				g2d.drawImage(Checkmark, 640, 426, this);
+				break;
+			case Brown:
+				g2d.drawImage(Checkmark, 940, 425, this);
+				break;
+			default:
+				break;
+			}
+
 			break;
 
 		case Game:
-
-			g2d.drawImage(background, 0, 0, this);
-
-			// Pieces
-			for (int j = 0; j < 8; j++) {
-				for (int i = 0; i < 8; i++) {
-					int t = PCoords[i][j];
-					switch (t) {
-					case 11:
-						g2d.drawImage(Wpawn, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 12:
-						g2d.drawImage(Wrook, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 13:
-						g2d.drawImage(Wknight, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 14:
-						g2d.drawImage(Wbishop, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 15:
-						g2d.drawImage(Wqueen, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 16:
-						g2d.drawImage(Wking, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 21:
-						g2d.drawImage(Bpawn, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 22:
-						g2d.drawImage(Brook, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 23:
-						g2d.drawImage(Bknight, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 24:
-						g2d.drawImage(Bbishop, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 25:
-						g2d.drawImage(Bqueen, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					case 26:
-						g2d.drawImage(Bking, (311 + (64 * j)), (60 + (66 * i)), this);
-						break;
-					}
-
-				}
-			}
-
-			if (LastMove[0][0] != -1) {
-				for (int i = 0; i < LastMove.length; i++) {
-					g2d.drawImage(Lbox, (311 + (64 * LastMove[i][0])), (60 + (66 * LastMove[i][1])), this);
-				}
-			}
-
-			if (selection) {
-				g2d.drawImage(Sbox, (311 + (64 * Selectx)), (60 + (66 * Selecty)), this);
-			}
-			for (int i = 0; i < 29; i++) {
-				if (Moves[i][0] != -1) {
-					g2d.drawImage(Mbox, (311 + (64 * Moves[i][0])), (60 + (66 * Moves[i][1])), this);
-				}
-				if (Attacks[i][0] != -1) {
-					g2d.drawImage(Abox, (311 + (64 * Attacks[i][0])), (60 + (66 * Attacks[i][1])), this);
-				}
-			}
-
-			for (int i = 0; i < 5; i++) {
-				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * i)), (72), this);
-				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * i)), (340), this);
-			}
-			for (int i = 5; i < 10; i++) {
-				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 5))), (138), this);
-				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 5))), (406), this);
-			}
-			for (int i = 10; i < 15; i++) {
-				g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 10))), (204), this);
-				g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 10))), (472), this);
-			}
-			// ^^^^^^^^^^^^^^^^^^^^^^^^^^
-			if (Turn == 'W') {
-				drawString(g2d, "White", "Times New Roman", Color.WHITE, 50, 970, 140);
-			} else if (Turn == 'B') {
-				drawString(g2d, "Black", "Times New Roman", Color.BLACK, 50, 970, 140);
-			} else if (Turn == 'L') {
-				drawString(g2d, "Checkmate", "Times New Roman", Color.RED, 35, 970, 140);
-			}
-			if (check > 0) {
-				g2d.drawImage(Checkbox, 430, 275, this);
-				check -= 1;
-			}
-			if (checkmate > 0) {
-				g2d.drawImage(CheckmateBox, 375, 275, this);
-				checkmate -= 1;
-			}
-			if (g2d.getFontMetrics().stringWidth(ChatBox[0]) > 800) {
-				for (int i = ChatBox[0].length(); i > 0; i--) {
-					if (g2d.getFontMetrics().stringWidth(ChatBox[0].substring(0, i)) < 800) {
-						for (int j = ChatBox.length - 1; j > 1; j--) {
-							ChatBox[j] = ChatBox[j - 1];
-						}
-						ChatBox[1] = ChatBox[0].substring(0, i);
-						ChatBox[0] = ChatBox[0].substring(i);
-						System.out.println(g2d.getFontMetrics().stringWidth(ChatBox[0]));
-						break;
-					}
-				}
-			}
-			
-			for (int i = 0; i < ChatBox.length; i++) {
-				drawString(g2d, ChatBox[i], "Times New Roman", Color.WHITE, 18, 900, 525 - (35 * i));
-			}
-
-			drawString(g2d, Chatbar, "Times New Roman", Color.WHITE, 18, 900, 575);
-
-			int blinkPause = 50;
-			if (p < blinkPause) {
-				g2d.drawImage(BlackBar, 900 + g2d.getFontMetrics().stringWidth(Chatbar), 560, this);
-				p++;
-			} else if (p < 2 * blinkPause) {
-				p++;
-			} else if (p >= 2 * blinkPause) {
-				p = 0;
-			}
-
-			if (g2d.getFontMetrics().stringWidth(Chatbar) > 285) {
-				ChatBarType = false;
-			} else {
-				ChatBarType = true;
-			}
-
 			if (isHosting == true) {
-				drawString(g2d, "Your Ip: " + HostIp, "Times New Roman", Color.WHITE, 18, 25, 25);
+				g2d.drawImage(Cbackground, 0, 0, this);
+				drawString(g2d, "Your Ip: " + HostIp, "Times New Roman", Color.WHITE, 36, 125, 125);
+				drawString(g2d, "Waiting for Connection...","Times New Roman", Color.WHITE, 36, 125, 325);
 				if (pause == 1) {
 					try {
 						GetOpponent();
@@ -565,6 +557,146 @@ public class Board extends JPanel implements ActionListener {
 				}
 				pause++;
 
+			} else {
+				g2d.drawImage(background, 0, 0, this);
+
+				if (board == BoardType.Grey) {
+					g2d.drawImage(GrayBoard, 300, 49, this);
+				}
+				if (board == BoardType.Red) {
+					g2d.drawImage(RedBoard, 300, 49, this);
+				}
+				if (board == BoardType.Brown) {
+					g2d.drawImage(BrownBoard, 300, 49, this);
+				}
+
+				// Pieces
+				for (int j = 0; j < 8; j++) {
+					for (int i = 7; i >= 0; i--) {
+						int t = PCoords[i][j];
+						switch (t) {
+						case 11:
+							g2d.drawImage(Wpawn, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 12:
+							g2d.drawImage(Wrook, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 13:
+							g2d.drawImage(Wknight, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 14:
+							g2d.drawImage(Wbishop, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 15:
+							g2d.drawImage(Wqueen, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 16:
+							g2d.drawImage(Wking, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 21:
+							g2d.drawImage(Bpawn, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 22:
+							g2d.drawImage(Brook, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 23:
+							g2d.drawImage(Bknight, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 24:
+							g2d.drawImage(Bbishop, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 25:
+							g2d.drawImage(Bqueen, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						case 26:
+							g2d.drawImage(Bking, (311 + (64 * j)), (60 + (66 * i)), this);
+							break;
+						}
+
+					}
+				}
+
+				if (LastMove[0][0] != -1) {
+					for (int i = 0; i < LastMove.length; i++) {
+						g2d.drawImage(Lbox, (311 + (64 * LastMove[i][0])), (60 + (66 * LastMove[i][1])), this);
+					}
+				}
+
+				if (selection) {
+					g2d.drawImage(Sbox, (311 + (64 * Selectx)), (60 + (66 * Selecty)), this);
+				}
+				for (int i = 0; i < 29; i++) {
+					if (Moves[i][0] != -1) {
+						g2d.drawImage(Mbox, (311 + (64 * Moves[i][0])), (60 + (66 * Moves[i][1])), this);
+					}
+					if (Attacks[i][0] != -1) {
+						g2d.drawImage(Abox, (311 + (64 * Attacks[i][0])), (60 + (66 * Attacks[i][1])), this);
+					}
+				}
+
+				for (int i = 0; i < 5; i++) {
+					g2d.drawImage(getImage(Ebox[i]), (18 + (54 * i)), (72), this);
+					g2d.drawImage(getImage(Fbox[i]), (18 + (54 * i)), (340), this);
+				}
+				for (int i = 5; i < 10; i++) {
+					g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 5))), (138), this);
+					g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 5))), (406), this);
+				}
+				for (int i = 10; i < 15; i++) {
+					g2d.drawImage(getImage(Ebox[i]), (18 + (54 * (i - 10))), (204), this);
+					g2d.drawImage(getImage(Fbox[i]), (18 + (54 * (i - 10))), (472), this);
+				}
+				// ^^^^^^^^^^^^^^^^^^^^^^^^^^
+				if (Turn == 'W') {
+					drawString(g2d, "White", "Times New Roman", Color.WHITE, 50, 970, 140);
+				} else if (Turn == 'B') {
+					drawString(g2d, "Black", "Times New Roman", Color.BLACK, 50, 970, 140);
+				} else if (Turn == 'L') {
+					drawString(g2d, "Checkmate", "Times New Roman", Color.RED, 35, 970, 140);
+				}
+				if (check > 0) {
+					g2d.drawImage(Checkbox, 430, 275, this);
+					check -= 1;
+				}
+				if (checkmate > 0) {
+					g2d.drawImage(CheckmateBox, 375, 275, this);
+					checkmate -= 1;
+				}
+				if (g2d.getFontMetrics().stringWidth(ChatBox[0]) > 800) {
+					for (int i = ChatBox[0].length(); i > 0; i--) {
+						if (g2d.getFontMetrics().stringWidth(ChatBox[0].substring(0, i)) < 800) {
+							for (int j = ChatBox.length - 1; j > 1; j--) {
+								ChatBox[j] = ChatBox[j - 1];
+							}
+							ChatBox[1] = ChatBox[0].substring(0, i);
+							ChatBox[0] = ChatBox[0].substring(i);
+							System.out.println(g2d.getFontMetrics().stringWidth(ChatBox[0]));
+							break;
+						}
+					}
+				}
+
+				for (int i = 0; i < ChatBox.length; i++) {
+					drawString(g2d, ChatBox[i], "Times New Roman", Color.WHITE, 18, 900, 525 - (35 * i));
+				}
+
+				drawString(g2d, Chatbar, "Times New Roman", Color.WHITE, 18, 900, 575);
+
+				int blinkPause = 50;
+				if (p < blinkPause) {
+					g2d.drawImage(BlackBar, 900 + g2d.getFontMetrics().stringWidth(Chatbar), 560, this);
+					p++;
+				} else if (p < 2 * blinkPause) {
+					p++;
+				} else if (p >= 2 * blinkPause) {
+					p = 0;
+				}
+
+				if (g2d.getFontMetrics().stringWidth(Chatbar) > 285) {
+					ChatBarType = false;
+				} else {
+					ChatBarType = true;
+				}
 			}
 
 			break;
@@ -2042,6 +2174,10 @@ public class Board extends JPanel implements ActionListener {
 					state = GameState.Instructions;
 					disconnect = false;
 				}
+				if (button(770, 380, 420, 80, (int) x, (int) y)) {
+					state = GameState.Settings;
+					disconnect = false;
+				}
 				break;
 
 			case PlayMenu:
@@ -2063,6 +2199,66 @@ public class Board extends JPanel implements ActionListener {
 				}
 				break;
 
+			case Settings:
+
+				// Pieces Selection
+				if (button(575, 130, 25, 25, (int) x, (int) y)) {
+
+					pieces = BoardType.Standard;
+
+					UpdatePieces();
+
+					for (int i = 0; i < Animations; i++) {
+						animation[i] = null;
+					}
+
+				}
+				if (button(575, 200, 25, 25, (int) x, (int) y)) {
+					pieces = BoardType.Official;
+					UpdatePieces();
+					for (int i = 0; i < Animations; i++) {
+						animation[i] = null;
+					}
+				}
+				if (button(575, 270, 25, 25, (int) x, (int) y)) {
+					pieces = BoardType.Blocky;
+					UpdatePieces();
+					for (int i = 0; i < Animations; i++) {
+						animation[i] = null;
+					}
+				}
+
+				// Menu Selection
+				if (button(930, 130, 25, 25, (int) x, (int) y)) {
+					display = BoardType.Straight;
+				}
+				if (button(930, 200, 25, 25, (int) x, (int) y)) {
+					display = BoardType.Wobbly;
+				}
+				if (button(930, 270, 25, 25, (int) x, (int) y)) {
+					display = BoardType.Circular;
+				}
+
+				// Board Selection
+				if (button(310, 437, 25, 25, (int) x, (int) y)) {
+					board = BoardType.Grey;
+					setBackground(grey);
+				}
+				if (button(638, 438, 25, 25, (int) x, (int) y)) {
+					board = BoardType.Red;
+					setBackground(red);
+				}
+				if (button(937, 437, 25, 25, (int) x, (int) y)) {
+					board = BoardType.Brown;
+					setBackground(brown);
+				}
+
+				if (button(89, 269, 423, 70, (int) x, (int) y)) {
+					state = GameState.MainMenu;
+				}
+
+				break;
+
 			case JoinMenu:
 				if (button(770, 290, 420, 70, (int) x, (int) y)) {
 					state = GameState.Game;
@@ -2080,36 +2276,48 @@ public class Board extends JPanel implements ActionListener {
 				break;
 
 			case Instructions:
-				int page = 1;
-				
+
+				if (button(839, 539, 413, 66, (int) x, (int) y)) {
+					state = GameState.MainMenu;
+				}
+				if (button(739, 534, 76, 73, (int) x, (int) y)) {
+					if (page >= 7) {
+						page = 1;
+					} else {
+						page += 1;
+					}
+				}
+				if (button(471, 533, 77, 73, (int) x, (int) y)) {
+					if (page <= 1) {
+						page = 7;
+					} else {
+						page -= 1;
+					}
+				}
 				switch (page) {
-				case 1: 
+				case 1:
 					Instructions = I1;
 					break;
-				case 2: 
+				case 2:
 					Instructions = I2;
 					break;
-				case 3: 
+				case 3:
 					Instructions = I3;
 					break;
-				case 4: 
+				case 4:
 					Instructions = I4;
 					break;
-				case 5: 
+				case 5:
 					Instructions = I5;
 					break;
-				case 6: 
+				case 6:
 					Instructions = I6;
 					break;
-				case 7: 
+				case 7:
 					Instructions = I7;
 					break;
 				}
-				
-				if (button(770, 400, 415, 70, (int) x, (int) y)) {
-					state = GameState.PlayMenu;
-				}
-				
+
 				break;
 
 			case Game:
